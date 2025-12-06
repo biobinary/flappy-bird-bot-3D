@@ -1,0 +1,14 @@
+# Ignore VS Code settings
+.vscode/
+
+# Ignore log directory
+log/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# (opsional) ignore file log
+*.log
