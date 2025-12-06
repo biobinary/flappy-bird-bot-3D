@@ -1,21 +1,27 @@
 <?xml version="1.0" ?>
-<sdf version="1.6">
-  <model name="quadrotor">
-    <pose>0 0 0.1 0 0 0</pose>
+<sdf version="1.9">
+  <model name="drone">
+    <pose>0 0 0.5 0 0 0</pose>
     
-    <!-- Base Link -->
+    <!-- Base Link (Drone Body) -->
     <link name="base_link">
       <pose>0 0 0 0 0 0</pose>
+      
+      <!-- Inertial Properties -->
       <inertial>
-        <mass>1.5</mass>
+        <mass>1.0</mass>
         <inertia>
-          <ixx>0.029125</ixx>
-          <iyy>0.029125</iyy>
-          <izz>0.055225</izz>
+          <ixx>0.00833</ixx>
+          <iyy>0.00833</iyy>
+          <izz>0.015</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
         </inertia>
       </inertial>
       
-      <collision name="base_link_collision">
+      <!-- Collision Geometry -->
+      <collision name="base_collision">
         <geometry>
           <box>
             <size>0.3 0.3 0.1</size>
@@ -23,174 +29,334 @@
         </geometry>
       </collision>
       
-      <visual name="base_link_visual">
+      <!-- Visual Geometry - Body -->
+      <visual name="base_visual">
         <geometry>
           <box>
             <size>0.3 0.3 0.1</size>
           </box>
         </geometry>
         <material>
-          <ambient>0.8 0.8 0.8 1</ambient>
-          <diffuse>0.8 0.8 0.8 1</diffuse>
+          <ambient>0.0 0.5 1.0 1</ambient>
+          <diffuse>0.0 0.5 1.0 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
         </material>
       </visual>
-    </link>
-    
-    <!-- Propeller 1 (Front Left) -->
-    <link name="propeller_1">
-      <pose>0.15 0.15 0.05 0 0 0</pose>
-      <inertial>
-        <mass>0.05</mass>
-        <inertia>
-          <ixx>0.0001</ixx>
-          <iyy>0.0001</iyy>
-          <izz>0.0001</izz>
-        </inertia>
-      </inertial>
       
-      <visual name="propeller_1_visual">
+      <!-- Arms (retained for visual detail) -->
+      <visual name="arm_front_left">
+        <pose>0.1 0.1 0 0 0 0.785398</pose>
+        <geometry>
+          <box>
+            <size>0.15 0.02 0.01</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.1 1</ambient>
+          <diffuse>0.2 0.2 0.2 1</diffuse>
+        </material>
+      </visual>
+      
+      <visual name="arm_front_right">
+        <pose>-0.1 0.1 0 0 0 -0.785398</pose>
+        <geometry>
+          <box>
+            <size>0.15 0.02 0.01</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.1 1</ambient>
+          <diffuse>0.2 0.2 0.2 1</diffuse>
+        </material>
+      </visual>
+      
+      <visual name="arm_back_left">
+        <pose>0.1 -0.1 0 0 0 -0.785398</pose>
+        <geometry>
+          <box>
+            <size>0.15 0.02 0.01</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.1 1</ambient>
+          <diffuse>0.2 0.2 0.2 1</diffuse>
+        </material>
+      </visual>
+      
+      <visual name="arm_back_right">
+        <pose>-0.1 -0.1 0 0 0 0.785398</pose>
+        <geometry>
+          <box>
+            <size>0.15 0.02 0.01</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.1 1</ambient>
+          <diffuse>0.2 0.2 0.2 1</diffuse>
+        </material>
+      </visual>
+      
+      <!-- Motor Mounts (retained) -->
+      <visual name="motor_fl">
+        <pose>0.15 0.15 0.02 0 0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.1</radius>
-            <length>0.01</length>
+            <radius>0.015</radius>
+            <length>0.04</length>
           </cylinder>
         </geometry>
         <material>
-          <ambient>0.2 0.2 0.2 1</ambient>
+          <ambient>0.3 0.3 0.3 1</ambient>
+          <diffuse>0.4 0.4 0.4 1</diffuse>
         </material>
       </visual>
-    </link>
-    
-    <joint name="propeller_1_joint" type="revolute">
-      <parent>base_link</parent>
-      <child>propeller_1</child>
-      <axis>
-        <xyz>0 0 1</xyz>
-      </axis>
-    </joint>
-    
-    <!-- Propeller 2 (Front Right) -->
-    <link name="propeller_2">
-      <pose>-0.15 0.15 0.05 0 0 0</pose>
-      <inertial>
-        <mass>0.05</mass>
-        <inertia>
-          <ixx>0.0001</ixx>
-          <iyy>0.0001</iyy>
-          <izz>0.0001</izz>
-        </inertia>
-      </inertial>
       
-      <visual name="propeller_2_visual">
+      <visual name="motor_fr">
+        <pose>-0.15 0.15 0.02 0 0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.1</radius>
-            <length>0.01</length>
+            <radius>0.015</radius>
+            <length>0.04</length>
           </cylinder>
         </geometry>
         <material>
-          <ambient>0.2 0.2 0.2 1</ambient>
+          <ambient>0.3 0.3 0.3 1</ambient>
+          <diffuse>0.4 0.4 0.4 1</diffuse>
         </material>
       </visual>
-    </link>
-    
-    <joint name="propeller_2_joint" type="revolute">
-      <parent>base_link</parent>
-      <child>propeller_2</child>
-      <axis>
-        <xyz>0 0 1</xyz>
-      </axis>
-    </joint>
-    
-    <!-- Propeller 3 (Back Left) -->
-    <link name="propeller_3">
-      <pose>0.15 -0.15 0.05 0 0 0</pose>
-      <inertial>
-        <mass>0.05</mass>
-        <inertia>
-          <ixx>0.0001</ixx>
-          <iyy>0.0001</iyy>
-          <izz>0.0001</izz>
-        </inertia>
-      </inertial>
       
-      <visual name="propeller_3_visual">
+      <visual name="motor_bl">
+        <pose>0.15 -0.15 0.02 0 0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.1</radius>
-            <length>0.01</length>
+            <radius>0.015</radius>
+            <length>0.04</length>
           </cylinder>
         </geometry>
         <material>
-          <ambient>0.2 0.2 0.2 1</ambient>
+          <ambient>0.3 0.3 0.3 1</ambient>
+          <diffuse>0.4 0.4 0.4 1</diffuse>
         </material>
       </visual>
-    </link>
-    
-    <joint name="propeller_3_joint" type="revolute">
-      <parent>base_link</parent>
-      <child>propeller_3</child>
-      <axis>
-        <xyz>0 0 1</xyz>
-      </axis>
-    </joint>
-    
-    <!-- Propeller 4 (Back Right) -->
-    <link name="propeller_4">
-      <pose>-0.15 -0.15 0.05 0 0 0</pose>
-      <inertial>
-        <mass>0.05</mass>
-        <inertia>
-          <ixx>0.0001</ixx>
-          <iyy>0.0001</iyy>
-          <izz>0.0001</izz>
-        </inertia>
-      </inertial>
       
-      <visual name="propeller_4_visual">
+      <visual name="motor_br">
+        <pose>-0.15 -0.15 0.02 0 0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.1</radius>
-            <length>0.01</length>
+            <radius>0.015</radius>
+            <length>0.04</length>
           </cylinder>
         </geometry>
         <material>
-          <ambient>0.2 0.2 0.2 1</ambient>
+          <ambient>0.3 0.3 0.3 1</ambient>
+          <diffuse>0.4 0.4 0.4 1</diffuse>
         </material>
       </visual>
+      
+      <!-- Propellers (retained, with CW/CCW colors) -->
+      <visual name="prop_fl">
+        <pose>0.15 0.15 0.055 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.08</radius>
+            <length>0.005</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>1.0 0.0 0.0 0.7</ambient>
+          <diffuse>1.0 0.0 0.0 0.7</diffuse>
+          <specular>0.5 0.5 0.5 0.7</specular>
+        </material>
+      </visual>
+      
+      <visual name="prop_fr">
+        <pose>-0.15 0.15 0.055 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.08</radius>
+            <length>0.005</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.0 0.0 0.0 0.7</ambient>
+          <diffuse>0.1 0.1 0.1 0.7</diffuse>
+          <specular>0.3 0.3 0.3 0.7</specular>
+        </material>
+      </visual>
+      
+      <visual name="prop_bl">
+        <pose>0.15 -0.15 0.055 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.08</radius>
+            <length>0.005</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.0 0.0 0.0 0.7</ambient>
+          <diffuse>0.1 0.1 0.1 0.7</diffuse>
+          <specular>0.3 0.3 0.3 0.7</specular>
+        </material>
+      </visual>
+      
+      <visual name="prop_br">
+        <pose>-0.15 -0.15 0.055 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.08</radius>
+            <length>0.005</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>1.0 0.0 0.0 0.7</ambient>
+          <diffuse>1.0 0.0 0.0 0.7</diffuse>
+          <specular>0.5 0.5 0.5 0.7</specular>
+        </material>
+      </visual>
+      
+      <!-- Front Marker (retained) -->
+      <visual name="front_marker">
+        <pose>0.16 0 0 0 1.5708 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.01</radius>
+            <length>0.03</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>1.0 0.0 0.0 1</ambient>
+          <diffuse>1.0 0.0 0.0 1</diffuse>
+        </material>
+      </visual>
+      
+      <!-- IMU Sensor -->
+      <sensor name="imu_sensor" type="imu">
+        <always_on>1</always_on>
+        <update_rate>100</update_rate>
+        <topic>/drone/imu</topic>
+        <imu>
+          <angular_velocity>
+            <x>
+              <noise type="gaussian">
+                <mean>0.0</mean>
+                <stddev>2e-4</stddev>
+              </noise>
+            </x>
+            <y>
+              <noise type="gaussian">
+                <mean>0.0</mean>
+                <stddev>2e-4</stddev>
+              </noise>
+            </y>
+            <z>
+              <noise type="gaussian">
+                <mean>0.0</mean>
+                <stddev>2e-4</stddev>
+              </noise>
+            </z>
+          </angular_velocity>
+          <linear_acceleration>
+            <x>
+              <noise type="gaussian">
+                <mean>0.0</mean>
+                <stddev>1.7e-2</stddev>
+              </noise>
+            </x>
+            <y>
+              <noise type="gaussian">
+                <mean>0.0</mean>
+                <stddev>1.7e-2</stddev>
+              </noise>
+            </y>
+            <z>
+              <noise type="gaussian">
+                <mean>0.0</mean>
+                <stddev>1.7e-2</stddev>
+              </noise>
+            </z>
+          </linear_acceleration>
+        </imu>
+      </sensor>
+      
+      <!-- LiDAR Upward -->
+      <sensor name="lidar_up" type="lidar">
+        <pose>0 0 0.06 0 0 0</pose>
+        <always_on>1</always_on>
+        <update_rate>10</update_rate>
+        <visualize>true</visualize>
+        <topic>/drone/lidar/up</topic>
+        <lidar>
+          <ray>
+            <scan>
+              <horizontal>
+                <samples>360</samples>
+                <resolution>1</resolution>
+                <min_angle>-3.14159</min_angle>
+                <max_angle>3.14159</max_angle>
+              </horizontal>
+              <vertical>
+                <samples>16</samples>
+                <resolution>1</resolution>
+                <min_angle>0.0</min_angle>
+                <max_angle>1.57079</max_angle>
+              </vertical>
+            </scan>
+            <range>
+              <min>0.1</min>
+              <max>10.0</max>
+              <resolution>0.01</resolution>
+            </range>
+            <noise>
+              <type>gaussian</type>
+              <mean>0.0</mean>
+              <stddev>0.01</stddev>
+            </noise>
+          </ray>
+        </lidar>
+      </sensor>
+      
+      <!-- LiDAR Downward -->
+      <sensor name="lidar_down" type="lidar">
+        <pose>0 0 -0.06 0 0 0</pose>
+        <always_on>1</always_on>
+        <update_rate>10</update_rate>
+        <visualize>true</visualize>
+        <topic>/drone/lidar/down</topic>
+        <lidar>
+          <ray>
+            <scan>
+              <horizontal>
+                <samples>360</samples>
+                <resolution>1</resolution>
+                <min_angle>-3.14159</min_angle>
+                <max_angle>3.14159</max_angle>
+              </horizontal>
+              <vertical>
+                <samples>16</samples>
+                <resolution>1</resolution>
+                <min_angle>-1.57079</min_angle>
+                <max_angle>0.0</max_angle>
+              </vertical>
+            </scan>
+            <range>
+              <min>0.1</min>
+              <max>10.0</max>
+              <resolution>0.01</resolution>
+            </range>
+            <noise>
+              <type>gaussian</type>
+              <mean>0.0</mean>
+              <stddev>0.01</stddev>
+            </noise>
+          </ray>
+        </lidar>
+      </sensor>
     </link>
     
-    <joint name="propeller_4_joint" type="revolute">
-      <parent>base_link</parent>
-      <child>propeller_4</child>
-      <axis>
-        <xyz>0 0 1</xyz>
-      </axis>
-    </joint>
-    
-    <!-- Plugin untuk kontrol -->
-    <plugin filename="gz-sim-thruster-system" name="gz::sim::systems::Thruster">
-      <namespace>quadrotor</namespace>
-    </plugin>
-    
-    <!-- Plugin untuk odometry -->
-    <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">
-      <odometry_frame>world</odometry_frame>
-      <robot_base_frame>base_link</robot_base_frame>
-      <publish_rate>50</publish_rate>
-      <topic>odometry</topic>
-    </plugin>
-    
-    <!-- Plugin untuk IMU -->
+    <!-- Plugins for GZ-Sim (Garden/Harmonic) -->
     <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu">
-      <topic>imu</topic>
-      <update_rate>100</update_rate>
     </plugin>
-    
-    <!-- Plugin untuk command velocity -->
-    <plugin filename="gz-sim-cmd-system" name="gz::sim::systems::CommandVelocity">
-      <topic>cmd_vel</topic>
+    <plugin filename="gz-sim-lidar-system" name="gz::sim::systems::Lidar">
     </plugin>
   </model>
 </sdf>
-
