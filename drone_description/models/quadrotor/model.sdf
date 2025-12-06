@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <sdf version="1.9">
-  <model name="drone">
+  <model name="quadrotor">
     <pose>0 0 0.5 0 0 0</pose>
     
     <!-- Base Link (Drone Body) -->
@@ -353,7 +353,6 @@
       </sensor>
     </link>
     
-    <!-- Plugins for GZ-Sim (Garden/Harmonic) -->
     <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu">
     </plugin>
     <plugin filename="gz-sim-lidar-system" name="gz::sim::systems::Lidar">
