@@ -12,7 +12,6 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        # Tidak ada launch file di package ini berdasarkan upload Anda
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -23,8 +22,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            # Nama ini harus sesuai dengan yang ada di launch file (executable='...')
-            'collision_monitor.py = drone_collision.collision_monitor:main',
+            'contact_monitor.py = drone_collision.contact_monitor:main',
         ],
     },
 )

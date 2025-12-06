@@ -64,6 +64,7 @@ def generate_launch_description():
                 '/model/quadrotor/cmd_vel@geometry_msgs/msg/Twist]gz.msgs.Twist',
                 '/drone/imu@sensor_msgs/msg/Imu]gz.msgs.IMU',
                 '/clock@rosgraph_msgs/msg/Clock]gz.msgs.Clock',
+                '/world/flappy/physics/contacts@ros_gz_interfaces/msg/Contacts]gz.msgs.Contacts'
             ],
             output='screen',
             parameters=[{
@@ -86,8 +87,8 @@ def generate_launch_description():
         # Collision Monitor
         Node(
             package='drone_collision',
-            executable='collision_monitor.py',
-            name='collision_monitor',
+            executable='contact_monitor.py',
+            name='contact_monitor',
             output='screen',
             parameters=[{
                 'use_sim_time': LaunchConfiguration('use_sim_time'),
