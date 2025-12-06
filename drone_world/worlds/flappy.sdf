@@ -1,0 +1,686 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="flappy">
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"></plugin>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"></plugin>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"></plugin>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"></plugin>
+
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 30 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <include>
+      <uri>model://quadrotor</uri>
+      <name>quadrotor</name>
+      <pose>0 0 6 0 0 0</pose>
+    </include>
+
+    <!-- Ground Plane -->
+    <model name="ground_plane">
+      <static>true</static>
+      <pose>100 0 -0.1 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>220 20 0.2</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>220 20 0.2</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.3 0.5 0.3 1</ambient>
+            <diffuse>0.3 0.5 0.3 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Ceiling -->
+    <model name="ceiling">
+      <static>true</static>
+      <pose>100 0 12 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>220 20 0.2</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>220 20 0.2</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.7 0.7 0.9 1</ambient>
+            <diffuse>0.7 0.7 0.9 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Left Wall -->
+    <model name="wall_left">
+      <static>true</static>
+      <pose>100 10 6 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>220 0.2 12</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>220 0.2 12</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.5 0.5 0.5 1</ambient>
+            <diffuse>0.5 0.5 0.5 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Right Wall -->
+    <model name="wall_right">
+      <static>true</static>
+      <pose>100 -10 6 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>220 0.2 12</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>220 0.2 12</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.5 0.5 0.5 1</ambient>
+            <diffuse>0.5 0.5 0.5 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Flappy Bird Obstacles (Pipes) - 10 pipes total -->
+    
+    <!-- Pipe 01: Gap at height 4-7m -->
+    <model name="pipe_01">
+      <pose>20 0 0 0 0 0</pose>
+      <static>true</static>
+      <link name="link">
+        <!-- Bottom pillar -->
+        <collision name="col_bottom">
+          <pose>0 0 2.0 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>4.0</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="vis_bottom">
+          <pose>0 0 2.0 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>4.0</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 0.8 0 1</ambient>
+            <diffuse>0 0.8 0 1</diffuse>
+          </material>
+        </visual>
+        <!-- Top pillar -->
+        <collision name="col_top">
+          <pose>0 0 9.5 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>5.0</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="vis_top">
+          <pose>0 0 9.5 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>5.0</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 0.8 0 1</ambient>
+            <diffuse>0 0.8 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Pipe 02: Gap at height 6-9m -->
+    <model name="pipe_02">
+      <pose>40 0 0 0 0 0</pose>
+      <static>true</static>
+      <link name="link">
+        <collision name="col_bottom">
+          <pose>0 0 3.0 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>6.0</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="vis_bottom">
+          <pose>0 0 3.0 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>6.0</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 0.8 0 1</ambient>
+            <diffuse>0 0.8 0 1</diffuse>
+          </material>
+        </visual>
+        <collision name="col_top">
+          <pose>0 0 10.5 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>3.0</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="vis_top">
+          <pose>0 0 10.5 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>3.0</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 0.8 0 1</ambient>
+            <diffuse>0 0.8 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Pipe 03: Gap at height 3-6m -->
+    <model name="pipe_03">
+      <pose>60 0 0 0 0 0</pose>
+      <static>true</static>
+      <link name="link">
+        <collision name="col_bottom">
+          <pose>0 0 1.5 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>3.0</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="vis_bottom">
+          <pose>0 0 1.5 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>3.0</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 0.8 0 1</ambient>
+            <diffuse>0 0.8 0 1</diffuse>
+          </material>
+        </visual>
+        <collision name="col_top">
+          <pose>0 0 9.0 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>6.0</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="vis_top">
+          <pose>0 0 9.0 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>6.0</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 0.8 0 1</ambient>
+            <diffuse>0 0.8 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Pipe 04: Gap at height 5-8m -->
+    <model name="pipe_04">
+      <pose>80 0 0 0 0 0</pose>
+      <static>true</static>
+      <link name="link">
+        <collision name="col_bottom">
+          <pose>0 0 2.5 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>5.0</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="vis_bottom">
+          <pose>0 0 2.5 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>5.0</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 0.8 0 1</ambient>
+            <diffuse>0 0.8 0 1</diffuse>
+          </material>
+        </visual>
+        <collision name="col_top">
+          <pose>0 0 10.0 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>4.0</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="vis_top">
+          <pose>0 0 10.0 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>4.0</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 0.8 0 1</ambient>
+            <diffuse>0 0.8 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Pipe 05: Gap at height 7-10m -->
+    <model name="pipe_05">
+      <pose>100 0 0 0 0 0</pose>
+      <static>true</static>
+      <link name="link">
+        <collision name="col_bottom">
+          <pose>0 0 3.5 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>7.0</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="vis_bottom">
+          <pose>0 0 3.5 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>7.0</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 0.8 0 1</ambient>
+            <diffuse>0 0.8 0 1</diffuse>
+          </material>
+        </visual>
+        <collision name="col_top">
+          <pose>0 0 11.0 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>2.0</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="vis_top">
+          <pose>0 0 11.0 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>2.0</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 0.8 0 1</ambient>
+            <diffuse>0 0.8 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Pipe 06: Gap at height 2-5m -->
+    <model name="pipe_06">
+      <pose>120 0 0 0 0 0</pose>
+      <static>true</static>
+      <link name="link">
+        <collision name="col_bottom">
+          <pose>0 0 1.0 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>2.0</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="vis_bottom">
+          <pose>0 0 1.0 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>2.0</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 0.8 0 1</ambient>
+            <diffuse>0 0.8 0 1</diffuse>
+          </material>
+        </visual>
+        <collision name="col_top">
+          <pose>0 0 8.5 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>7.0</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="vis_top">
+          <pose>0 0 8.5 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>7.0</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 0.8 0 1</ambient>
+            <diffuse>0 0.8 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Pipe 07: Gap at height 5.5-8.5m -->
+    <model name="pipe_07">
+      <pose>140 0 0 0 0 0</pose>
+      <static>true</static>
+      <link name="link">
+        <collision name="col_bottom">
+          <pose>0 0 2.75 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>5.5</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="vis_bottom">
+          <pose>0 0 2.75 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>5.5</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 0.8 0 1</ambient>
+            <diffuse>0 0.8 0 1</diffuse>
+          </material>
+        </visual>
+        <collision name="col_top">
+          <pose>0 0 10.25 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>3.5</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="vis_top">
+          <pose>0 0 10.25 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>3.5</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 0.8 0 1</ambient>
+            <diffuse>0 0.8 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Pipe 08: Gap at height 4-7m -->
+    <model name="pipe_08">
+      <pose>160 0 0 0 0 0</pose>
+      <static>true</static>
+      <link name="link">
+        <collision name="col_bottom">
+          <pose>0 0 2.0 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>4.0</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="vis_bottom">
+          <pose>0 0 2.0 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>4.0</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 0.8 0 1</ambient>
+            <diffuse>0 0.8 0 1</diffuse>
+          </material>
+        </visual>
+        <collision name="col_top">
+          <pose>0 0 9.5 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>5.0</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="vis_top">
+          <pose>0 0 9.5 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>5.0</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 0.8 0 1</ambient>
+            <diffuse>0 0.8 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Pipe 09: Gap at height 6.5-9.5m -->
+    <model name="pipe_09">
+      <pose>180 0 0 0 0 0</pose>
+      <static>true</static>
+      <link name="link">
+        <collision name="col_bottom">
+          <pose>0 0 3.25 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>6.5</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="vis_bottom">
+          <pose>0 0 3.25 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>6.5</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 0.8 0 1</ambient>
+            <diffuse>0 0.8 0 1</diffuse>
+          </material>
+        </visual>
+        <collision name="col_top">
+          <pose>0 0 10.75 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>2.5</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="vis_top">
+          <pose>0 0 10.75 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>2.5</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 0.8 0 1</ambient>
+            <diffuse>0 0.8 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Pipe 10: Gap at height 3.5-6.5m -->
+    <model name="pipe_10">
+      <pose>200 0 0 0 0 0</pose>
+      <static>true</static>
+      <link name="link">
+        <collision name="col_bottom">
+          <pose>0 0 1.75 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>3.5</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="vis_bottom">
+          <pose>0 0 1.75 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>3.5</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 0.8 0 1</ambient>
+            <diffuse>0 0.8 0 1</diffuse>
+          </material>
+        </visual>
+        <collision name="col_top">
+          <pose>0 0 9.25 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>5.5</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="vis_top">
+          <pose>0 0 9.25 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.5</radius>
+              <length>5.5</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 0.8 0 1</ambient>
+            <diffuse>0 0.8 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Goal Marker -->
+    <model name="goal_marker">
+      <pose>210 0 6 0 0 0</pose>
+      <static>true</static>
+      <link name="link">
+        <visual name="visual">
+          <geometry>
+            <sphere>
+              <radius>1.5</radius>
+            </sphere>
+          </geometry>
+          <material>
+            <ambient>1.0 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.8 0.0 1</diffuse>
+            <emissive>0.5 0.4 0.0 1</emissive>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>
