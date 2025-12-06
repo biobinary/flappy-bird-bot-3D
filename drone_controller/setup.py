@@ -19,12 +19,12 @@ setup(
     zip_safe=True,
     maintainer='User',
     maintainer_email='user@example.com',
-    description='Drone controller package',
+    description='Drone Flappy Bird controller package',
     license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'controller_node.py = drone_controller.controller_node:main',
+            'drone_controller_node.py = drone_controller.drone_controller_node:main',
         ],
     },
 )
