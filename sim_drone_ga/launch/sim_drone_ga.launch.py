@@ -61,11 +61,9 @@ def generate_launch_description():
             executable='parameter_bridge',
             name='ros_gz_bridge',
             arguments=[
-                '/drone/cmd_vel@geometry_msgs/msg/Twist[gz.msgs.Twist@BIDIRECTIONAL',
-                '/drone/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry@GZ_TO_ROS',
-                '/drone/imu@sensor_msgs/msg/Imu[gz.msgs.IMU@GZ_TO_ROS',
-                '/drone/lidar/up@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked@GZ_TO_ROS',
-                '/drone/lidar/down@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked@GZ_TO_ROS',
+                '/model/quadrotor/cmd_vel@geometry_msgs/msg/Twist]gz.msgs.Twist',
+                '/drone/imu@sensor_msgs/msg/Imu]gz.msgs.IMU',
+                '/clock@rosgraph_msgs/msg/Clock]gz.msgs.Clock',
             ],
             output='screen',
             parameters=[{
