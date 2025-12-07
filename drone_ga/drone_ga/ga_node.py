@@ -166,13 +166,13 @@ class GATrainingLoop(Node):
         self.state = STATE_RESETTING_WORLD
 
     def reset_drone_pose(self):
-        """Reset pose via subprocess (gz service CLI)"""
+        """Reset pose via subprocess (ign service CLI)"""
         try:
             cmd = [
-                'gz', 'service',
+                'ign', 'service',
                 '-s', '/world/flappy/set_pose',
-                '--reqtype', 'gz.msgs.Pose',
-                '--reptype', 'gz.msgs.Boolean',
+                '--reqtype', 'ignition.msgs.Pose',
+                '--reptype', 'ignition.msgs.Boolean',
                 '--timeout', '5000',
                 '--req', 'name: "quadrotor" position: {x: 0.0 y: 0.0 z: 6.0} orientation: {w: 1.0}'
             ]

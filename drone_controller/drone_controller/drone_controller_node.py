@@ -117,7 +117,7 @@ class DroneFlappyController(Node):
             
             self.weights_received = True
             
-            # Enable control after short delay
+            # Enable control after short delay (Logic check here acts as immediate check)
             if self.init_start_time is not None:
                 elapsed = (self.get_clock().now() - self.init_start_time).nanoseconds / 1e9
                 if elapsed > 0.5:  # Wait 0.5s after reset
@@ -127,7 +127,6 @@ class DroneFlappyController(Node):
     def lidar_up_callback(self, msg):
         """Process upward LiDAR with safety checks"""
         try:
-            # Filter valid ranges
             valid_ranges = [
                 r for r in msg.ranges 
                 if r < msg.range_max and r > msg.range_min and not np.isinf(r) and not np.isnan(r)
@@ -136,7 +135,6 @@ class DroneFlappyController(Node):
             if len(valid_ranges) > 0:
                 self.lidar_up_distance = min(valid_ranges)
             else:
-                # No valid readings - use max range
                 self.lidar_up_distance = 10.0
                 
         except Exception as e:
@@ -201,19 +199,19 @@ class DroneFlappyController(Node):
     def control_loop(self):
         """Main control loop"""
         
-        # During initialization, send zero velocity
-        if self.initialization_phase or not self.control_enabled:
-            cmd_vel = Twist()
-            self.cmd_vel_pub.publish(cmd_vel)
-            return
-        
-        # Check if we should enable control
+        # FIX: Check timer BEFORE returning due to disabled control
         if not self.control_enabled and self.init_start_time is not None:
             elapsed = (self.get_clock().now() - self.init_start_time).nanoseconds / 1e9
             if elapsed > 0.5:
                 self.initialization_phase = False
                 self.control_enabled = True
                 self.get_logger().info('Control enabled')
+        
+        # During initialization, send zero velocity
+        if self.initialization_phase or not self.control_enabled:
+            cmd_vel = Twist()
+            self.cmd_vel_pub.publish(cmd_vel)
+            return
         
         # Normal control
         if self.control_enabled:
