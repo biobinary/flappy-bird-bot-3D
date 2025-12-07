@@ -28,6 +28,15 @@
           </box>
         </geometry>
       </collision>
+
+      <sensor name='collision_sensor' type='contact'>
+        <update_rate>100.0</update_rate>
+        <always_on>1</always_on>
+        <contact>
+          <collision>base_collision</collision>
+        </contact>
+        <visualize>true</visualize>
+      </sensor>
       
       <!-- Visual Geometry - Body -->
       <visual name="base_visual">
