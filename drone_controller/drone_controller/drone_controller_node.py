@@ -7,12 +7,10 @@ Reads sensor data and publishes control commands
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
-from sensor_msgs.msg import Imu, PointCloud2
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Bool
-import sensor_msgs_py.point_cloud2 as pc2
+from sensor_msgs.msg import Imu, LaserScan
 import numpy as np
-
 
 class DroneFlappyController(Node):
     """
@@ -49,16 +47,15 @@ class DroneFlappyController(Node):
             10
         )
         
-        # Subscribers
         self.lidar_up_sub = self.create_subscription(
-            PointCloud2,
+            LaserScan,              
             '/drone/lidar/up',
             self.lidar_up_callback,
-            10
+            10 
         )
         
         self.lidar_down_sub = self.create_subscription(
-            PointCloud2,
+            LaserScan,
             '/drone/lidar/down',
             self.lidar_down_callback,
             10
@@ -108,56 +105,28 @@ class DroneFlappyController(Node):
         self.get_logger().info(f'Control rate: {control_rate} Hz')
 
     def lidar_up_callback(self, msg):
-        """Process upward LiDAR point cloud"""
+        """Process upward LiDAR Scan"""
         try:
-            # Extract points from point cloud
-            points = []
-            for point in pc2.read_points(msg, field_names=("x", "y", "z"), skip_nans=True):
-                points.append(point)
+            valid_ranges = [r for r in msg.ranges if r < msg.range_max and r > msg.range_min]
             
-            if len(points) > 0:
-                # Calculate minimum distance from forward-facing points
-                distances = []
-                for x, y, z in points:
-                    # Filter points in front of drone (positive x direction)
-                    if x > 0:
-                        distance = np.sqrt(x**2 + y**2 + z**2)
-                        distances.append(distance)
-                
-                if len(distances) > 0:
-                    self.lidar_up_distance = min(distances)
-                else:
-                    self.lidar_up_distance = 10.0  # Max range
+            if len(valid_ranges) > 0:
+                self.lidar_up_distance = min(valid_ranges)
             else:
-                self.lidar_up_distance = 10.0
+                self.lidar_up_distance = 10.0 # Max range
                 
         except Exception as e:
             self.get_logger().error(f'Error processing lidar_up: {e}')
             self.lidar_up_distance = 10.0
 
     def lidar_down_callback(self, msg):
-        """Process downward LiDAR point cloud"""
+        """Process downward LiDAR Scan"""
         try:
-            # Extract points from point cloud
-            points = []
-            for point in pc2.read_points(msg, field_names=("x", "y", "z"), skip_nans=True):
-                points.append(point)
+            valid_ranges = [r for r in msg.ranges if r < msg.range_max and r > msg.range_min]
             
-            if len(points) > 0:
-                # Calculate minimum distance from forward-facing points
-                distances = []
-                for x, y, z in points:
-                    # Filter points in front of drone (positive x direction)
-                    if x > 0:
-                        distance = np.sqrt(x**2 + y**2 + z**2)
-                        distances.append(distance)
-                
-                if len(distances) > 0:
-                    self.lidar_down_distance = min(distances)
-                else:
-                    self.lidar_down_distance = 10.0  # Max range
+            if len(valid_ranges) > 0:
+                self.lidar_down_distance = min(valid_ranges)
             else:
-                self.lidar_down_distance = 10.0
+                self.lidar_down_distance = 10.0 
                 
         except Exception as e:
             self.get_logger().error(f'Error processing lidar_down: {e}')

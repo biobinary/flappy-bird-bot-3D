@@ -62,11 +62,17 @@ def generate_launch_description():
             name='ros_gz_bridge',
             arguments=[
                 '/model/quadrotor/cmd_vel@geometry_msgs/msg/Twist]gz.msgs.Twist',
-                '/drone/imu@sensor_msgs/msg/Imu]gz.msgs.IMU',
-                '/clock@rosgraph_msgs/msg/Clock]gz.msgs.Clock',
-                '/world/flappy/physics/contacts@ros_gz_interfaces/msg/Contacts]gz.msgs.Contacts'
+                '/drone/imu@sensor_msgs/msg/Imu[gz.msgs.IMU',
+                '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
+                '/world/flappy/physics/contacts@ros_gz_interfaces/msg/Contacts[gz.msgs.Contacts',
+                '/model/quadrotor/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
+                '/drone/lidar/up@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
+                '/drone/lidar/down@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
             ],
             output='screen',
+            remappings=[
+                ('/model/quadrotor/odometry', '/drone/odom')
+            ],
             parameters=[{
                 'use_sim_time': LaunchConfiguration('use_sim_time'),
             }]
