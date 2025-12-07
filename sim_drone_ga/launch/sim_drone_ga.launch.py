@@ -68,6 +68,8 @@ def generate_launch_description():
                 '/model/quadrotor/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
                 '/drone/lidar/up@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
                 '/drone/lidar/down@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
+                '/world/flappy/control@ros_gz_interfaces/srv/ControlWorld]gz.msgs.WorldControl',
+                '/world/flappy/control@ros_gz_interfaces/srv/ControlWorld@gz.msgs.WorldControl@gz.msgs.Boolean'
             ],
             output='screen',
             remappings=[

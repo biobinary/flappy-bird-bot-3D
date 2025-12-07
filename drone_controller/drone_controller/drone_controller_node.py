@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-
 """
-Drone Controller Node for Flappy Bird Simulation with GA Integration
-Reads sensor data, GA weights, and publishes control commands
+Enhanced Drone Controller with better safety checks
 """
 
 import rclpy
@@ -15,19 +13,14 @@ import numpy as np
 
 class DroneFlappyController(Node):
 
-    """
-    Controller node untuk drone Flappy Bird
-    Menggunakan bobot dari GA untuk kontrol
-    """
-
     def __init__(self):
         super().__init__('drone_flappy_controller')
         
-        # Declare parameters (skip use_sim_time as it's auto-declared)
+        # Declare parameters
         try:
-            self.declare_parameter('forward_velocity', 1.0)
-            self.declare_parameter('max_vertical_velocity', 2.0)
-            self.declare_parameter('control_rate', 20.0)  # Hz
+            self.declare_parameter('forward_velocity', 1.5)
+            self.declare_parameter('max_vertical_velocity', 2.5)
+            self.declare_parameter('control_rate', 20.0)
         except Exception as e:
             self.get_logger().warn(f'Parameter declaration warning: {e}')
         
@@ -43,18 +36,12 @@ class DroneFlappyController(Node):
             10
         )
         
-        self.status_pub = self.create_publisher(
-            Bool,
-            '/drone/controller/status',
-            10
-        )
-        
-        # Subscribers - Sensors
+        # Subscribers
         self.lidar_up_sub = self.create_subscription(
-            LaserScan,              
+            LaserScan,
             '/drone/lidar/up',
             self.lidar_up_callback,
-            10 
+            10
         )
         
         self.lidar_down_sub = self.create_subscription(
@@ -64,21 +51,13 @@ class DroneFlappyController(Node):
             10
         )
         
-        self.imu_sub = self.create_subscription(
-            Imu,
-            '/drone/imu',
-            self.imu_callback,
-            10
-        )
-        
         self.odom_sub = self.create_subscription(
             Odometry,
-            '/drone/odom',  # Updated to match remapping in launch file
+            '/drone/odom',
             self.odom_callback,
             10
         )
         
-        # Subscriber - GA Weights
         self.ga_weights_sub = self.create_subscription(
             Float64MultiArray,
             '/ga/weights',
@@ -86,21 +65,27 @@ class DroneFlappyController(Node):
             10
         )
         
-        # State variables - Sensors
+        self.reset_sub = self.create_subscription(
+            Bool,
+            '/ga/reset_trigger',
+            self.reset_callback,
+            10
+        )
+        
+        # State variables
         self.lidar_up_distance = None
         self.lidar_down_distance = None
-        self.current_imu = None
-        self.current_odom = None
         self.current_height = 0.0
         self.current_velocity_z = 0.0
         
-        # State variables - GA Weights
-        self.ga_weights = None  # [w1, w2, w3, w4]
+        # GA weights
+        self.ga_weights = None
         self.weights_received = False
         
         # Control state
-        self.is_active = True
-        self.control_enabled = True
+        self.control_enabled = False
+        self.initialization_phase = True
+        self.init_start_time = None
         
         # Timer untuk control loop
         self.control_timer = self.create_timer(
@@ -108,182 +93,139 @@ class DroneFlappyController(Node):
             self.control_loop
         )
         
-        # Timer untuk status publishing
-        self.status_timer = self.create_timer(
-            1.0,
-            self.publish_status
-        )
-        
-        self.get_logger().info('Drone Flappy Controller Node initialized with GA Integration')
-        self.get_logger().info(f'Forward velocity: {self.forward_vel} m/s')
-        self.get_logger().info(f'Max vertical velocity: {self.max_vertical_vel} m/s')
-        self.get_logger().info(f'Control rate: {control_rate} Hz')
-        self.get_logger().info('Waiting for GA weights from /ga/weights...')
+        self.get_logger().info('Enhanced Drone Controller initialized')
+
+    def reset_callback(self, msg):
+        """Handle reset from training loop"""
+        if msg.data:
+            self.get_logger().info('Reset received - entering initialization phase')
+            self.initialization_phase = True
+            self.init_start_time = self.get_clock().now()
+            self.control_enabled = False
+            
+            # Send zero velocity during reset
+            cmd_vel = Twist()
+            self.cmd_vel_pub.publish(cmd_vel)
 
     def ga_weights_callback(self, msg):
-        """
-        Callback untuk menerima bobot GA dari topik /ga/weights
-        Format: [w1, w2, w3, w4]
-        """
+        """Receive GA weights and enable control"""
         if len(msg.data) >= 4:
             self.ga_weights = list(msg.data[:4])
             
             if not self.weights_received:
-                self.get_logger().info(f'GA Weights received: {self.ga_weights}')
-                self.weights_received = True
-            else:
-                self.get_logger().debug(f'GA Weights updated: {self.ga_weights}')
-        else:
-            self.get_logger().warn(f'Invalid GA weights received. Expected 4 values, got {len(msg.data)}')
+                self.get_logger().info(f'GA Weights received: {[f"{w:.2f}" for w in self.ga_weights]}')
+            
+            self.weights_received = True
+            
+            # Enable control after short delay
+            if self.init_start_time is not None:
+                elapsed = (self.get_clock().now() - self.init_start_time).nanoseconds / 1e9
+                if elapsed > 0.5:  # Wait 0.5s after reset
+                    self.initialization_phase = False
+                    self.control_enabled = True
 
     def lidar_up_callback(self, msg):
-        """Process upward LiDAR Scan"""
+        """Process upward LiDAR with safety checks"""
         try:
-            valid_ranges = [r for r in msg.ranges if r < msg.range_max and r > msg.range_min]
+            # Filter valid ranges
+            valid_ranges = [
+                r for r in msg.ranges 
+                if r < msg.range_max and r > msg.range_min and not np.isinf(r) and not np.isnan(r)
+            ]
             
             if len(valid_ranges) > 0:
                 self.lidar_up_distance = min(valid_ranges)
             else:
-                self.lidar_up_distance = msg.range_max  # Use max range if no valid readings
+                # No valid readings - use max range
+                self.lidar_up_distance = 10.0
                 
         except Exception as e:
-            self.get_logger().error(f'Error processing lidar_up: {e}')
+            self.get_logger().error(f'LiDAR up error: {e}')
             self.lidar_up_distance = 10.0
 
     def lidar_down_callback(self, msg):
-        """Process downward LiDAR Scan"""
+        """Process downward LiDAR with safety checks"""
         try:
-            valid_ranges = [r for r in msg.ranges if r < msg.range_max and r > msg.range_min]
+            valid_ranges = [
+                r for r in msg.ranges 
+                if r < msg.range_max and r > msg.range_min and not np.isinf(r) and not np.isnan(r)
+            ]
             
             if len(valid_ranges) > 0:
                 self.lidar_down_distance = min(valid_ranges)
             else:
-                self.lidar_down_distance = msg.range_max
+                self.lidar_down_distance = 10.0
                 
         except Exception as e:
-            self.get_logger().error(f'Error processing lidar_down: {e}')
+            self.get_logger().error(f'LiDAR down error: {e}')
             self.lidar_down_distance = 10.0
 
-    def imu_callback(self, msg):
-        """Process IMU data"""
-        self.current_imu = msg
-
     def odom_callback(self, msg):
-        """Process odometry data"""
-        self.current_odom = msg
+        """Process odometry"""
         self.current_height = msg.pose.pose.position.z
         self.current_velocity_z = msg.twist.twist.linear.z
 
     def calculate_control_ga(self):
         """
-        Calculate vertical control command using GA weights
-        
+        Calculate vertical control using GA weights
         Formula: vertical_cmd = w1*lidar_up + w2*lidar_down + w3*altitude + w4
-        
-        Returns:
-            float: vertical velocity command (-max_vertical_vel to +max_vertical_vel)
         """
         
-        # Safety check - if weights not received, return 0
+        # Safety checks
         if not self.weights_received or self.ga_weights is None:
             return 0.0
         
-        # Safety check - if sensor data not available
         if self.lidar_up_distance is None or self.lidar_down_distance is None:
-            self.get_logger().warn('LiDAR data not available yet')
             return 0.0
         
         # Extract weights
         w1, w2, w3, w4 = self.ga_weights
         
-        # Get sensor inputs
-        lidar_up = self.lidar_up_distance
-        lidar_down = self.lidar_down_distance
-        altitude = self.current_height
+        # Normalize inputs to reasonable ranges
+        lidar_up = np.clip(self.lidar_up_distance, 0.1, 10.0)
+        lidar_down = np.clip(self.lidar_down_distance, 0.1, 10.0)
+        altitude = np.clip(self.current_height, 0.0, 12.0)
         
-        # Calculate vertical command using GA weights
-        # vertical_cmd = w1*lidar_up + w2*lidar_down + w3*altitude + w4
+        # Calculate command
         vertical_cmd = w1 * lidar_up + w2 * lidar_down + w3 * altitude + w4
         
-        # Clamp to max velocity
+        # Clamp output
         vertical_cmd = np.clip(
             vertical_cmd,
             -self.max_vertical_vel,
             self.max_vertical_vel
         )
         
-        # Log debug info periodically (every ~1 second)
-        if self.get_clock().now().nanoseconds % 1000000000 < 50000000:
-            self.get_logger().info(
-                f'Sensors - Up: {lidar_up:.2f}m, Down: {lidar_down:.2f}m, '
-                f'Alt: {altitude:.2f}m | Cmd_Z: {vertical_cmd:.2f}m/s'
-            )
-        
         return vertical_cmd
 
     def control_loop(self):
-        """Main control loop - publishes cmd_vel using GA weights"""
+        """Main control loop"""
         
-        if not self.control_enabled:
+        # During initialization, send zero velocity
+        if self.initialization_phase or not self.control_enabled:
+            cmd_vel = Twist()
+            self.cmd_vel_pub.publish(cmd_vel)
             return
         
-        # Create Twist message
-        cmd_vel = Twist()
+        # Check if we should enable control
+        if not self.control_enabled and self.init_start_time is not None:
+            elapsed = (self.get_clock().now() - self.init_start_time).nanoseconds / 1e9
+            if elapsed > 0.5:
+                self.initialization_phase = False
+                self.control_enabled = True
+                self.get_logger().info('Control enabled')
         
-        # Constant forward velocity
-        cmd_vel.linear.x = self.forward_vel
-        cmd_vel.linear.y = 0.0
-        
-        # Calculate vertical velocity using GA weights
-        cmd_vel.linear.z = self.calculate_control_ga()
-        
-        # No angular velocity for Flappy Bird
-        cmd_vel.angular.x = 0.0
-        cmd_vel.angular.y = 0.0
-        cmd_vel.angular.z = 0.0
-        
-        # Publish command
-        self.cmd_vel_pub.publish(cmd_vel)
-
-    def publish_status(self):
-        """Publish controller status"""
-        status = Bool()
-        status.data = (
-            self.is_active and 
-            self.weights_received and
-            self.lidar_up_distance is not None and 
-            self.lidar_down_distance is not None
-        )
-        self.status_pub.publish(status)
-
-    def enable_control(self):
-        """Enable control output"""
-        self.control_enabled = True
-        self.get_logger().info('Control enabled')
-
-    def disable_control(self):
-        """Disable control output"""
-        self.control_enabled = False
-        # Send zero velocity
-        cmd_vel = Twist()
-        self.cmd_vel_pub.publish(cmd_vel)
-        self.get_logger().info('Control disabled')
-
-    def get_sensor_state(self):
-        """
-        Get current sensor state for monitoring
-        
-        Returns:
-            dict: Dictionary containing sensor data
-        """
-        return {
-            'lidar_up': self.lidar_up_distance,
-            'lidar_down': self.lidar_down_distance,
-            'height': self.current_height,
-            'velocity_z': self.current_velocity_z,
-            'ga_weights': self.ga_weights,
-            'weights_received': self.weights_received
-        }
+        # Normal control
+        if self.control_enabled:
+            cmd_vel = Twist()
+            cmd_vel.linear.x = self.forward_vel
+            cmd_vel.linear.y = 0.0
+            cmd_vel.linear.z = self.calculate_control_ga()
+            cmd_vel.angular.x = 0.0
+            cmd_vel.angular.y = 0.0
+            cmd_vel.angular.z = 0.0
+            
+            self.cmd_vel_pub.publish(cmd_vel)
 
 
 def main(args=None):
@@ -294,9 +236,8 @@ def main(args=None):
     try:
         rclpy.spin(controller)
     except KeyboardInterrupt:
-        controller.get_logger().info('Shutting down controller...')
+        pass
     finally:
-        controller.disable_control()
         controller.destroy_node()
         rclpy.shutdown()
 

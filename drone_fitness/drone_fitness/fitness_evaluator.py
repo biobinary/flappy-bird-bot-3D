@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Drone Fitness Evaluator Node
-Menghitung fitness berdasarkan jarak maksimum sumbu X yang dicapai drone sebelum collision.
+Fixed Drone Fitness Evaluator Node
+Properly handles episode-based fitness evaluation
 """
 
 import rclpy
@@ -16,7 +16,7 @@ class DroneFitness(Node):
     def __init__(self):
         super().__init__('drone_fitness')
         
-        # Publisher untuk fitness episode
+        # Publisher untuk fitness
         self.fitness_pub = self.create_publisher(
             Float64,
             '/ga/fitness',
@@ -38,57 +38,89 @@ class DroneFitness(Node):
             10
         )
         
+        # Listen to reset trigger from training loop
+        self.reset_sub = self.create_subscription(
+            Bool,
+            '/ga/reset_trigger',
+            self.reset_callback,
+            10
+        )
+        
         # State variables
         self.initial_x = None
         self.max_x = 0.0
         self.current_x = 0.0
-        self.collision_detected = False
+        self.episode_active = False
+        self.collision_handled = False
         
-        # Timer untuk publish current max fitness secara periodik (monitoring)
-        self.timer = self.create_timer(0.5, self.timer_callback)
+        # Timer untuk publish continuous fitness (monitoring only)
+        self.timer = self.create_timer(0.2, self.timer_callback)
         
-        self.get_logger().info('Drone Fitness Evaluator Node started')
-        self.get_logger().info('Waiting for initial odometry to set starting position')
+        self.get_logger().info('Drone Fitness Evaluator Node started (Fixed)')
+
+    def reset_callback(self, msg):
+        """Handle reset signal from training loop"""
+        if msg.data:
+            self.get_logger().info('Reset signal received - starting new episode')
+            self.initial_x = None
+            self.max_x = 0.0
+            self.current_x = 0.0
+            self.episode_active = True
+            self.collision_handled = False
 
     def odom_callback(self, msg):
         """Callback untuk odometry - update posisi X dan max X."""
         self.current_x = msg.pose.pose.position.x
         
-        # Set initial_x pada pesan odom pertama
-        if self.initial_x is None:
+        # Set initial_x pada pesan odom pertama setelah reset
+        if self.initial_x is None and self.episode_active:
             self.initial_x = self.current_x
             self.max_x = self.current_x
-            self.get_logger().info(f'Initial X position set: {self.initial_x:.2f}')
+            self.get_logger().info(f'Episode started at X = {self.initial_x:.2f}')
         
-        # Update max X
-        if self.current_x > self.max_x:
-            self.max_x = self.current_x
+        # Update max X hanya jika episode aktif
+        if self.episode_active and self.initial_x is not None:
+            if self.current_x > self.max_x:
+                self.max_x = self.current_x
 
     def collision_callback(self, msg):
-        """Callback untuk collision - hitung dan publish fitness final, lalu reset."""
-        if msg.data and not self.collision_detected:
-            # Collision terdeteksi untuk pertama kali - finalkan fitness
-            travelled_distance = self.max_x - self.initial_x
+        """
+        Callback untuk collision
+        Hanya handle collision pertama per episode
+        """
+        if msg.data and self.episode_active and not self.collision_handled:
+            # Mark collision as handled untuk episode ini
+            self.collision_handled = True
+            self.episode_active = False
+            
+            # Calculate final fitness
+            if self.initial_x is not None:
+                travelled_distance = self.max_x - self.initial_x
+            else:
+                travelled_distance = 0.0
+            
+            # Publish final fitness
             fitness_msg = Float64()
-            fitness_msg.data = float(travelled_distance)
+            fitness_msg.data = max(0.0, float(travelled_distance))
             self.fitness_pub.publish(fitness_msg)
             
-            self.get_logger().warn(f'COLLISION DETECTED! Final Fitness (Max Travelled X): {travelled_distance:.2f}')
-            
-            # Reset untuk episode berikutnya
-            self.max_x = self.initial_x if self.initial_x is not None else 0.0
-            self.collision_detected = False
-            self.get_logger().info('Fitness episode reset - ready for next run')
+            self.get_logger().info(
+                f'Episode ended - Travelled: {travelled_distance:.2f}m '
+                f'(from {self.initial_x:.2f} to {self.max_x:.2f})'
+            )
 
     def timer_callback(self):
-        """Timer callback - publish current max travelled distance untuk monitoring."""
-        if self.initial_x is not None:
-            current_max_travelled = self.max_x - self.initial_x
-            fitness_msg = Float64()
-            fitness_msg.data = float(current_max_travelled)
-            self.fitness_pub.publish(fitness_msg)
+        """
+        Timer callback - publish current fitness untuk monitoring
+        Ini TIDAK akan digunakan untuk evolusi, hanya untuk visualisasi
+        """
+        if self.episode_active and self.initial_x is not None:
+            current_distance = self.max_x - self.initial_x
             
-            self.get_logger().debug(f'Current Max Travelled X: {current_max_travelled:.2f}')
+            # Publish untuk monitoring
+            fitness_msg = Float64()
+            fitness_msg.data = max(0.0, float(current_distance))
+            self.fitness_pub.publish(fitness_msg)
 
 
 def main(args=None):

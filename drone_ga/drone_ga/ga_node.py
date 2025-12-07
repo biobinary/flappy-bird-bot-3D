@@ -1,199 +1,268 @@
 #!/usr/bin/env python3
+"""
+GA Training Loop Node - FIX (State Machine Implementation)
+Mencegah deadlock dengan menggunakan arsitektur non-blocking state machine.
+"""
 
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Float64, Float64MultiArray, Int32
-import numpy as np
-import random
+from std_msgs.msg import Float64, Float64MultiArray, Bool
+from nav_msgs.msg import Odometry
+from ros_gz_interfaces.srv import ControlWorld
 import time
+import subprocess
+import random
+import numpy as np
 
-class DroneGANode(Node):
+STATE_IDLE = 0
+STATE_RESETTING_WORLD = 1
+STATE_WAITING_SETTLE = 2
+STATE_RESETTING_POSE = 3
+STATE_EPISODE_ACTIVE = 4
 
+class GATrainingLoop(Node):
+    
     def __init__(self):
-
-        super().__init__('drone_ga')
-
-        self.population_size = 20
-        self.mutation_rate = 0.1
-        self.num_weights = 4
-        self.max_generations = 100
+        super().__init__('ga_training_loop')
         
-        self.current_generation = 1
-        self.current_individual_idx = 0
+        # Parameters
+        self.declare_parameter('episode_timeout', 30.0)
+        self.declare_parameter('population_size', 20)
+        self.declare_parameter('max_generations', 100)
+        self.declare_parameter('settling_time', 1.0)
+        
+        self.episode_timeout = self.get_parameter('episode_timeout').value
+        self.population_size = self.get_parameter('population_size').value
+        self.max_generations = self.get_parameter('max_generations').value
+        self.settling_time = self.get_parameter('settling_time').value
+        
+        # GA state
+        self.current_generation = 0
+        self.current_individual = 0
         self.population = []
         self.fitness_scores = []
-        self.waiting_for_fitness = False
+        self.best_weights = None
+        self.best_fitness = -float('inf')
         
-        self.initialize_population()
-
+        # Simulation State Variables
+        self.state = STATE_IDLE
+        self.episode_start_time = None
+        self.state_start_time = None
+        self.collision_detected = False
+        self.current_fitness = 0.0
+        self.reset_future = None
+        
+        # Publishers
         self.weights_pub = self.create_publisher(
-            Float64MultiArray, 
-            '/ga/weights', 
-            10
-        )
+            Float64MultiArray, '/ga/weights', 10)
         
-        self.best_weights_pub = self.create_publisher(
-            Float64MultiArray, 
-            '/ga/best_weights', 
-            10
-        )
+        self.reset_trigger_pub = self.create_publisher(
+            Bool, '/ga/reset_trigger', 10)
         
-        self.gen_pub = self.create_publisher(
-            Int32,
-            '/ga/generation',
-            10
-        )
+        # Subscribers
+        self.create_subscription(
+            Float64, '/ga/fitness', self.fitness_callback, 10)
+        
+        self.create_subscription(
+            Bool, '/drone/collision', self.collision_callback, 10)
+            
+        # Service Client for World Control
+        self.world_control_client = self.create_client(
+            ControlWorld, '/world/flappy/control')
+            
+        self.get_logger().info('Waiting for world control service...')
 
-        self.fitness_sub = self.create_subscription(
-            Float64,
-            '/ga/fitness',
-            self.fitness_callback,
-            10
-        )
-
-        self.timer = self.create_timer(1.0, self.game_loop)
+        self.control_timer = self.create_timer(0.1, self.training_loop)
         
-        self.get_logger().info('Drone GA Node Started. Ready to evolve!')
+        # Initialize population
+        self.initialize_population()
+        self.fitness_scores = [0.0] * self.population_size
+        
+        self.get_logger().info('=== GA Training Loop Started (State Machine Fixed) ===')
 
     def initialize_population(self):
-
-        """Membuat populasi awal dengan bobot random."""
-        
+        """Initialize random population"""
         self.population = []
         for _ in range(self.population_size):
-            individual = [random.uniform(-1.0, 1.0) for _ in range(self.num_weights)]
-            self.population.append(individual)
-        
-        self.fitness_scores = [0.0] * self.population_size
+            weights = [random.uniform(-2.0, 2.0) for _ in range(4)]
+            self.population.append(weights)
+        self.get_logger().info(f'Initialized {self.population_size} individuals')
 
     def fitness_callback(self, msg):
+        if self.state == STATE_EPISODE_ACTIVE:
+            self.current_fitness = max(self.current_fitness, msg.data)
 
-        """Callback saat menerima fitness dari evaluator."""
-        
-        if self.waiting_for_fitness:
-            score = msg.data
-            self.fitness_scores[self.current_individual_idx] = score
-            
-            self.get_logger().info(
-                f'Gen {self.current_generation} | Indiv {self.current_individual_idx + 1}/{self.population_size} | Fitness: {score:.2f}'
-            )
-            
-            self.current_individual_idx += 1
-            self.waiting_for_fitness = False
+    def collision_callback(self, msg):
+        if self.state == STATE_EPISODE_ACTIVE and msg.data:
+            self.collision_detected = True
 
-    def publish_current_weights(self):
-        """Mengirim bobot individu saat ini ke topik /ga/weights."""
-        weights = self.population[self.current_individual_idx]
+    # --- STATE MACHINE LOOP ---
+    def training_loop(self):
+        """Main State Machine Loop"""
         
-        msg = Float64MultiArray()
-        msg.data = weights
-        self.weights_pub.publish(msg)
-        
-        self.get_logger().info(f'Testing Individual {self.current_individual_idx + 1}: {weights}')
-        self.waiting_for_fitness = True
-
-    def game_loop(self):
-        """Loop utama logika GA."""
-        
-        if self.waiting_for_fitness:
+        # Cek Ketersediaan Service (Hanya sekali di awal)
+        if not self.world_control_client.service_is_ready():
             return
 
-        if self.current_individual_idx < self.population_size:
-            self.publish_current_weights()
-        else:
-            self.evolve_generation()
+        if self.state == STATE_IDLE:
+            if self.current_generation >= self.max_generations:
+                self.get_logger().info('TRAINING COMPLETE!')
+                self.control_timer.cancel()
+                return
 
-    def selection_tournament(self):
+            if self.current_individual >= self.population_size:
+                self.evolve_generation()
+                return
 
-        """Melakukan Tournament Selection."""
-        
-        tournament_size = 3
-        candidates_idx = random.sample(range(self.population_size), tournament_size)
-        
-        best_idx = candidates_idx[0]
-        for idx in candidates_idx:
-            if self.fitness_scores[idx] > self.fitness_scores[best_idx]:
-                best_idx = idx
+            self.trigger_world_reset()
+
+        elif self.state == STATE_RESETTING_WORLD:
+            if self.reset_future.done():
+                try:
+                    self.reset_future.result()
+                    self.state = STATE_WAITING_SETTLE
+                    self.state_start_time = self.get_clock().now()
+                except Exception as e:
+                    self.get_logger().error(f'World reset service call failed: {e}')
+                    self.state = STATE_IDLE
+
+        elif self.state == STATE_WAITING_SETTLE:
+            now = self.get_clock().now()
+            elapsed = (now - self.state_start_time).nanoseconds / 1e9
+            if elapsed >= self.settling_time:
+                self.reset_drone_pose() # Panggil subprocess
+                self.state = STATE_RESETTING_POSE
+                self.state_start_time = now # Reset timer untuk pose delay kecil
+
+        elif self.state == STATE_RESETTING_POSE:
+            # Beri sedikit waktu setelah subprocess call (0.5 detik)
+            now = self.get_clock().now()
+            elapsed = (now - self.state_start_time).nanoseconds / 1e9
+            if elapsed >= 0.5:
+                # Kirim sinyal reset ke node controller/fitness
+                reset_msg = Bool()
+                reset_msg.data = True
+                self.reset_trigger_pub.publish(reset_msg)
                 
-        return self.population[best_idx]
+                # Mulai Episode
+                self.start_episode()
+                self.state = STATE_EPISODE_ACTIVE
 
-    def crossover(self, parent1, parent2):
-        
-        """Single Point Crossover."""
-        
-        point = random.randint(1, self.num_weights - 1)
-        
-        child1 = parent1[:point] + parent2[point:]
-        child2 = parent2[:point] + parent1[point:]
-        
-        return child1, child2
+        elif self.state == STATE_EPISODE_ACTIVE:
+            now = self.get_clock().now()
+            elapsed = (now - self.episode_start_time).nanoseconds / 1e9
+            
+            if elapsed > self.episode_timeout or self.collision_detected:
+                reason = "Collision" if self.collision_detected else "Timeout"
+                self.end_episode(reason)
+                self.state = STATE_IDLE # Kembali ke awal untuk individu berikutnya
 
-    def mutate(self, individual):
-        
-        """Mutasi gen dengan probabilitas tertentu."""
-        
-        mutated_indiv = list(individual) # Copy
-        
-        for i in range(len(mutated_indiv)):
-            if random.random() < self.mutation_rate:
-                mutated_indiv[i] += random.gauss(0, 0.2)
-                mutated_indiv[i] = max(min(mutated_indiv[i], 5.0), -5.0)
+    def trigger_world_reset(self):
+        """Kirim request reset world secara async"""
+        self.get_logger().info(f'Gen {self.current_generation+1} Ind {self.current_individual+1}: Resetting World...')
+        req = ControlWorld.Request()
+        req.world_control.reset.all = True
+        self.reset_future = self.world_control_client.call_async(req)
+        self.state = STATE_RESETTING_WORLD
 
-        return mutated_indiv
+    def reset_drone_pose(self):
+        """Reset pose via subprocess (gz service CLI)"""
+        try:
+            cmd = [
+                'gz', 'service',
+                '-s', '/world/flappy/set_pose',
+                '--reqtype', 'gz.msgs.Pose',
+                '--reptype', 'gz.msgs.Boolean',
+                '--timeout', '5000',
+                '--req', 'name: "quadrotor" position: {x: 0.0 y: 0.0 z: 6.0} orientation: {w: 1.0}'
+            ]
+            subprocess.run(cmd, capture_output=True, text=True, timeout=1.0)
+        except Exception as e:
+            self.get_logger().error(f'Failed to reset pose CLI: {e}')
+
+    def start_episode(self):
+        """Setup variabel untuk episode baru"""
+        weights = self.population[self.current_individual]
+        
+        # Publish weights
+        weights_msg = Float64MultiArray()
+        weights_msg.data = weights
+        self.weights_pub.publish(weights_msg)
+        
+        # Reset variable episode
+        self.collision_detected = False
+        self.current_fitness = 0.0
+        self.episode_start_time = self.get_clock().now()
+        
+        self.get_logger().info(f'  >> Episode Started. Weights: {[f"{w:.2f}" for w in weights]}')
+
+    def end_episode(self, reason):
+        """Simpan fitness dan log hasil"""
+        self.fitness_scores[self.current_individual] = self.current_fitness
+        
+        # Update Best
+        if self.current_fitness > self.best_fitness:
+            self.best_fitness = self.current_fitness
+            self.best_weights = self.population[self.current_individual].copy()
+            self.get_logger().info(f'  🏆 NEW BEST: {self.best_fitness:.2f}')
+            
+        self.get_logger().info(f'  << Ended ({reason}). Fitness: {self.current_fitness:.2f}')
+        self.current_individual += 1
 
     def evolve_generation(self):
-
-        """Membentuk generasi baru."""
+        """Algoritma Genetika: Seleksi, Crossover, Mutasi"""
+        self.get_logger().info('='*40)
+        self.get_logger().info(f'GENERATION {self.current_generation + 1} COMPLETE')
+        self.get_logger().info(f'Avg Fitness: {np.mean(self.fitness_scores):.2f}')
+        self.get_logger().info('='*40)
         
-        best_fitness_idx = np.argmax(self.fitness_scores)
-        best_weights = self.population[best_fitness_idx]
-        best_score = self.fitness_scores[best_fitness_idx]
-
-        best_msg = Float64MultiArray()
-        best_msg.data = best_weights
-        self.best_weights_pub.publish(best_msg)
+        new_pop = []
         
-        gen_msg = Int32()
-        gen_msg.data = self.current_generation
-        self.gen_pub.publish(gen_msg)
+        # Elitism (Keep top 2)
+        indices = np.argsort(self.fitness_scores)[::-1]
+        new_pop.append(self.population[indices[0]].copy())
+        new_pop.append(self.population[indices[1]].copy())
+        
+        # Helper: Tournament Selection
+        def tournament():
+            k = 3
+            candidates = random.sample(list(enumerate(self.fitness_scores)), k)
+            # candidates is list of (index, score)
+            best = max(candidates, key=lambda x: x[1])
+            return self.population[best[0]]
 
-        self.get_logger().info('=============================================')
-        self.get_logger().info(f'GENERATION {self.current_generation} COMPLETE')
-        self.get_logger().info(f'Best Fitness: {best_score:.2f}')
-        self.get_logger().info(f'Best Weights: {best_weights}')
-        self.get_logger().info('=============================================')
-
-        new_population = []
-
-        new_population.append(best_weights)
-        new_population.append(best_weights)
-
-        while len(new_population) < self.population_size:
-
-            p1 = self.selection_tournament()
-            p2 = self.selection_tournament()
+        # Generate sisa populasi
+        while len(new_pop) < self.population_size:
+            p1 = tournament()
+            p2 = tournament()
             
-            c1, c2 = self.crossover(p1, p2)
+            # Crossover
+            if random.random() < 0.7:
+                pt = random.randint(1, 3)
+                c1 = p1[:pt] + p2[pt:]
+                c2 = p2[:pt] + p1[pt:]
+            else:
+                c1, c2 = p1.copy(), p2.copy()
             
-            c1 = self.mutate(c1)
-            c2 = self.mutate(c2)
-            
-            new_population.append(c1)
-            if len(new_population) < self.population_size:
-                new_population.append(c2)
-
-        self.population = new_population
+            # Mutation
+            for c in [c1, c2]:
+                if random.random() < 0.2: # Mutation probability
+                    idx = random.randint(0, 3)
+                    c[idx] += random.gauss(0, 0.5)
+                    c[idx] = np.clip(c[idx], -3.0, 3.0)
+                new_pop.append(c)
+                if len(new_pop) >= self.population_size:
+                    break
+        
+        self.population = new_pop
         self.fitness_scores = [0.0] * self.population_size
-        self.current_individual_idx = 0
+        self.current_individual = 0
         self.current_generation += 1
-        
-        self.get_logger().info(f'Starting Generation {self.current_generation}...')
+        self.state = STATE_IDLE # Siap untuk loop berikutnya
 
 def main(args=None):
     rclpy.init(args=args)
-    
-    node = DroneGANode()
-    
+    node = GATrainingLoop()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
