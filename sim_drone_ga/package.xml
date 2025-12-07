@@ -9,7 +9,6 @@
 
   <depend>rclpy</depend>
   <depend>ros_gz_bridge</depend>
-  <depend>gazebo_ros</depend>
   <depend>drone_world</depend>
   <depend>drone_controller</depend>
   <depend>drone_description</depend>
