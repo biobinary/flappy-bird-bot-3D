@@ -8,10 +8,10 @@ from ros_gz_interfaces.msg import Contacts
 class ContactMonitor(Node):
 
     def __init__(self):
-
-        super().__init__('drone_collision_node')
+        super().__init__('contact_monitor')
 
         self.drone_model_name = 'quadrotor'
+        self.collision_active = False
 
         self.collision_pub = self.create_publisher(
             Bool,
@@ -19,39 +19,53 @@ class ContactMonitor(Node):
             10
         )
 
+        # Subscribe ke topik kontak physics dari Gazebo
         self.contact_sub = self.create_subscription(
             Contacts,
-            '/world/flappy/physics/contacts',
+            '/drone/contacts',
             self.contact_callback,
             10
         )
+        
+        # CRITICAL FIX: Listen to reset trigger to clear collision state
+        self.reset_sub = self.create_subscription(
+            Bool,
+            '/ga/reset_trigger',
+            self.reset_callback,
+            10
+        )
 
-        self.get_logger().info('Contact Monitor Node (Physics Based) Started')
+        self.get_logger().info('Contact Monitor Listening on: /world/flappy/physics/contacts')
+
+    def reset_callback(self, msg):
+        """Reset collision state when new episode starts"""
+        if msg.data:
+            self.collision_active = False
+            self.get_logger().info('Collision state reset for new episode')
 
     def contact_callback(self, msg):
-        
+
+        if not msg.contacts:
+            return
+
         is_collision = False
         
         for contact in msg.contacts:
+            is_collision = True
+            break
         
-            e1 = contact.entity1.id if hasattr(contact.entity1, 'id') else str(contact.entity1)
-            e2 = contact.entity2.id if hasattr(contact.entity2, 'id') else str(contact.entity2)
-    
-            if self.drone_model_name in str(e1) or self.drone_model_name in str(e2):
-                is_collision = True
-                self.get_logger().warn(f'Collision detected between: {e1} and {e2}')
-                break
-        
-        # Publish status
-        out_msg = Bool()
-        out_msg.data = is_collision
-        self.collision_pub.publish(out_msg)
+        if is_collision:
+            if not self.collision_active:
+                self.get_logger().warn('!!! COLLISION DETECTED !!!')
+                self.collision_active = True
+            
+            out_msg = Bool()
+            out_msg.data = True
+            self.collision_pub.publish(out_msg)
 
 def main(args=None):
     rclpy.init(args=args)
-    
     node = ContactMonitor()
-    
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
