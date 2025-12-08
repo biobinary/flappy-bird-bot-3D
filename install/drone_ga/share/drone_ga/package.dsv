@@ -1,9 +1,0 @@
-source;share/drone_ga/hook/pythonpath.ps1
-source;share/drone_ga/hook/pythonpath.dsv
-source;share/drone_ga/hook/pythonpath.sh
-source;share/drone_ga/hook/ament_prefix_path.ps1
-source;share/drone_ga/hook/ament_prefix_path.dsv
-source;share/drone_ga/hook/ament_prefix_path.sh
-source;../../build/drone_ga/share/drone_ga/hook/pythonpath_develop.ps1
-source;../../build/drone_ga/share/drone_ga/hook/pythonpath_develop.dsv
-source;../../build/drone_ga/share/drone_ga/hook/pythonpath_develop.sh

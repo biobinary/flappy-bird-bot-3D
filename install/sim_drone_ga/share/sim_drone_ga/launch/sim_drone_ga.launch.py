@@ -1,1 +1,0 @@
-/home/icadobod/Downloads/code/flappy-bird-bot-3D/build/sim_drone_ga/launch/sim_drone_ga.launch.py

@@ -1,3 +1,0 @@
-[console_scripts]
-contact_monitor.py = drone_collision.contact_monitor:main
-

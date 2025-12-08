@@ -1,3 +1,0 @@
-[console_scripts]
-fitness_evaluator.py = drone_fitness.fitness_evaluator:main
-

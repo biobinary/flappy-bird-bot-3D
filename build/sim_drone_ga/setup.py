@@ -1,1 +1,0 @@
-/home/icadobod/Downloads/code/flappy-bird-bot-3D/sim_drone_ga/setup.py

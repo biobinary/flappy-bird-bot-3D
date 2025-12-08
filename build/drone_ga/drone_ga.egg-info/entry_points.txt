@@ -1,3 +1,0 @@
-[console_scripts]
-ga_node.py = drone_ga.ga_node:main
-
