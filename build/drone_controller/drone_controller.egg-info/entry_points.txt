@@ -1,0 +1,3 @@
+[console_scripts]
+drone_controller_node.py = drone_controller.drone_controller_node:main
+

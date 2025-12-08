@@ -26,10 +26,10 @@ class GATrainingLoop(Node):
         super().__init__('ga_training_loop')
         
         # Parameters
-        self.declare_parameter('episode_timeout', 30.0)
-        self.declare_parameter('population_size', 20)
+        self.declare_parameter('episode_timeout', 15.0)
+        self.declare_parameter('population_size', 30)
         self.declare_parameter('max_generations', 100)
-        self.declare_parameter('settling_time', 1.0)
+        self.declare_parameter('settling_time', 0.3)
         
         self.episode_timeout = self.get_parameter('episode_timeout').value
         self.population_size = self.get_parameter('population_size').value
@@ -81,12 +81,29 @@ class GATrainingLoop(Node):
         self.get_logger().info('=== GA Training Loop Started (State Machine Fixed) ===')
 
     def initialize_population(self):
-        """Initialize random population"""
+        """Initialize population with smart heuristics"""
         self.population = []
-        for _ in range(self.population_size):
+        
+        # Smart seeds (20% of population) - based on intuition
+        # Format: [lidar_up, lidar_down, altitude, bias]
+        smart_seeds = [
+            [0.5, -1.5, 0.3, 0.5],   # React to obstacles
+            [1.0, -2.0, 0.5, 0.3],   # Aggressive avoidance
+            [0.3, -1.0, 0.4, 0.7],   # Altitude focus
+            [0.8, -1.8, 0.2, 0.4],   # Balanced
+            [0.4, -1.2, 0.6, 0.5],   # Cautious
+        ]
+        
+        num_seeds = min(len(smart_seeds), self.population_size // 5)
+        for i in range(num_seeds):
+            self.population.append(smart_seeds[i])
+        
+        # Random initialization for the rest
+        while len(self.population) < self.population_size:
             weights = [random.uniform(-2.0, 2.0) for _ in range(4)]
             self.population.append(weights)
-        self.get_logger().info(f'Initialized {self.population_size} individuals')
+            
+        self.get_logger().info(f'Initialized {self.population_size} individuals ({num_seeds} smart seeds)')
 
     def fitness_callback(self, msg):
         if self.state == STATE_EPISODE_ACTIVE:
@@ -214,20 +231,20 @@ class GATrainingLoop(Node):
         self.get_logger().info('='*40)
         self.get_logger().info(f'GENERATION {self.current_generation + 1} COMPLETE')
         self.get_logger().info(f'Avg Fitness: {np.mean(self.fitness_scores):.2f}')
+        self.get_logger().info(f'Max Fitness: {np.max(self.fitness_scores):.2f}')
         self.get_logger().info('='*40)
         
         new_pop = []
         
-        # Elitism (Keep top 2)
+        # Elitism (Keep top 3 - increased from 2)
         indices = np.argsort(self.fitness_scores)[::-1]
-        new_pop.append(self.population[indices[0]].copy())
-        new_pop.append(self.population[indices[1]].copy())
+        for i in range(min(3, self.population_size)):
+            new_pop.append(self.population[indices[i]].copy())
         
-        # Helper: Tournament Selection
+        # Helper: Tournament Selection (increased selectivity)
         def tournament():
-            k = 3
+            k = 4  # Tournament size 3 -> 4
             candidates = random.sample(list(enumerate(self.fitness_scores)), k)
-            # candidates is list of (index, score)
             best = max(candidates, key=lambda x: x[1])
             return self.population[best[0]]
 
@@ -236,19 +253,21 @@ class GATrainingLoop(Node):
             p1 = tournament()
             p2 = tournament()
             
-            # Crossover
-            if random.random() < 0.7:
+            # Crossover (increased probability 0.7 -> 0.8)
+            if random.random() < 0.8:
                 pt = random.randint(1, 3)
                 c1 = p1[:pt] + p2[pt:]
                 c2 = p2[:pt] + p1[pt:]
             else:
                 c1, c2 = p1.copy(), p2.copy()
             
-            # Mutation
+            # Mutation (increased rate 0.2 -> 0.35, adaptive strength)
             for c in [c1, c2]:
-                if random.random() < 0.2: # Mutation probability
+                if random.random() < 0.35:
                     idx = random.randint(0, 3)
-                    c[idx] += random.gauss(0, 0.5)
+                    # Adaptive mutation: stronger early, weaker later
+                    strength = 0.8 * (1.0 - self.current_generation / self.max_generations) + 0.2
+                    c[idx] += random.gauss(0, strength)
                     c[idx] = np.clip(c[idx], -3.0, 3.0)
                 new_pop.append(c)
                 if len(new_pop) >= self.population_size:

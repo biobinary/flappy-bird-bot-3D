@@ -1,0 +1,16 @@
+/home/haqi/fp-robotik/flappy-bird-bot-3D/install/drone_world/share/drone_world/worlds/flappy.sdf
+/home/haqi/fp-robotik/flappy-bird-bot-3D/install/drone_world/share/ament_index/resource_index/package_run_dependencies/drone_world
+/home/haqi/fp-robotik/flappy-bird-bot-3D/install/drone_world/share/ament_index/resource_index/parent_prefix_path/drone_world
+/home/haqi/fp-robotik/flappy-bird-bot-3D/install/drone_world/share/drone_world/environment/ament_prefix_path.sh
+/home/haqi/fp-robotik/flappy-bird-bot-3D/install/drone_world/share/drone_world/environment/ament_prefix_path.dsv
+/home/haqi/fp-robotik/flappy-bird-bot-3D/install/drone_world/share/drone_world/environment/path.sh
+/home/haqi/fp-robotik/flappy-bird-bot-3D/install/drone_world/share/drone_world/environment/path.dsv
+/home/haqi/fp-robotik/flappy-bird-bot-3D/install/drone_world/share/drone_world/local_setup.bash
+/home/haqi/fp-robotik/flappy-bird-bot-3D/install/drone_world/share/drone_world/local_setup.sh
+/home/haqi/fp-robotik/flappy-bird-bot-3D/install/drone_world/share/drone_world/local_setup.zsh
+/home/haqi/fp-robotik/flappy-bird-bot-3D/install/drone_world/share/drone_world/local_setup.dsv
+/home/haqi/fp-robotik/flappy-bird-bot-3D/install/drone_world/share/drone_world/package.dsv
+/home/haqi/fp-robotik/flappy-bird-bot-3D/install/drone_world/share/ament_index/resource_index/packages/drone_world
+/home/haqi/fp-robotik/flappy-bird-bot-3D/install/drone_world/share/drone_world/cmake/drone_worldConfig.cmake
+/home/haqi/fp-robotik/flappy-bird-bot-3D/install/drone_world/share/drone_world/cmake/drone_worldConfig-version.cmake
+/home/haqi/fp-robotik/flappy-bird-bot-3D/install/drone_world/share/drone_world/package.xml

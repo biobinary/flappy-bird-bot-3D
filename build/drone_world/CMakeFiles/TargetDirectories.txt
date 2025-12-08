@@ -1,0 +1,9 @@
+/home/haqi/fp-robotik/flappy-bird-bot-3D/build/drone_world/CMakeFiles/uninstall.dir
+/home/haqi/fp-robotik/flappy-bird-bot-3D/build/drone_world/CMakeFiles/drone_world_uninstall.dir
+/home/haqi/fp-robotik/flappy-bird-bot-3D/build/drone_world/CMakeFiles/test.dir
+/home/haqi/fp-robotik/flappy-bird-bot-3D/build/drone_world/CMakeFiles/edit_cache.dir
+/home/haqi/fp-robotik/flappy-bird-bot-3D/build/drone_world/CMakeFiles/rebuild_cache.dir
+/home/haqi/fp-robotik/flappy-bird-bot-3D/build/drone_world/CMakeFiles/list_install_components.dir
+/home/haqi/fp-robotik/flappy-bird-bot-3D/build/drone_world/CMakeFiles/install.dir
+/home/haqi/fp-robotik/flappy-bird-bot-3D/build/drone_world/CMakeFiles/install/local.dir
+/home/haqi/fp-robotik/flappy-bird-bot-3D/build/drone_world/CMakeFiles/install/strip.dir

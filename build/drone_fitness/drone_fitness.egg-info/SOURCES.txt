@@ -1,0 +1,13 @@
+package.xml
+setup.cfg
+setup.py
+drone_fitness/__init__.py
+drone_fitness/fitness_evaluator.py
+drone_fitness.egg-info/PKG-INFO
+drone_fitness.egg-info/SOURCES.txt
+drone_fitness.egg-info/dependency_links.txt
+drone_fitness.egg-info/entry_points.txt
+drone_fitness.egg-info/requires.txt
+drone_fitness.egg-info/top_level.txt
+drone_fitness.egg-info/zip-safe
+resource/drone_fitness
