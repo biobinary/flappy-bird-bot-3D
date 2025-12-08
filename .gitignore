@@ -4,11 +4,28 @@
 # Ignore log directory
 log/
 
-# Ignore Python cache
+# ROS2 build artifacts
+build/
+install/
+
+# Ignore Python cache and build artifacts
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.egg-info/
+dist/
+.pytest_cache/
+.coverage
+
+# Virtual environments
+env/
+venv/
+.venv/
 
 # (opsional) ignore file log
 *.log
+
+# OS generated files
+.DS_Store
+*~
