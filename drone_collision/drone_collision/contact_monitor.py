@@ -56,7 +56,7 @@ class ContactMonitor(Node):
         
         if is_collision:
             if not self.collision_active:
-                self.get_logger().warn('!!! COLLISION DETECTED !!!')
+                self.get_logger().warn('!!!!!!!!!!!!!!! COLLISION DETECTED !!!!!!!!!!!!!')
                 self.collision_active = True
             
             out_msg = Bool()

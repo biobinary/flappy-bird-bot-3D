@@ -87,12 +87,21 @@ class GATrainingLoop(Node):
         # Smart seeds (20% of population) - based on intuition
         # Format: [lidar_up, lidar_down, altitude, bias]
         smart_seeds = [
-            [0.5, -1.5, 0.3, 0.5],   # React to obstacles
-            [1.0, -2.0, 0.5, 0.3],   # Aggressive avoidance
-            [0.3, -1.0, 0.4, 0.7],   # Altitude focus
-            [0.8, -1.8, 0.2, 0.4],   # Balanced
-            [0.4, -1.2, 0.6, 0.5],   # Cautious
+            # ---- FOUNDATIONAL (stable, conservative) ----
+            [0.45, -1.20, 0.10, 0.00],  # Baseline (integrator-friendly)
+            [0.60, -1.50, 0.15, 0.05],  # Slightly reactive
+            [0.35, -1.00, 0.05, 0.00],  # Very stable / smooth
+
+            # ---- OBSTACLE-DOMINANT (pipes first) ----
+            [0.80, -1.80, 0.10, 0.00],  # Strong avoidance
+            [1.00, -2.00, 0.05, 0.00],  # Aggressive pipes
+
+            # ---- RECOVERY / EDGE CASES ----
+            [0.25, -0.80, 0.20, 0.10],  # Altitude recovery
+            [0.50, -1.30, 0.00, 0.15],  # Bias assist (rare)
         ]
+
+
         
         num_seeds = min(len(smart_seeds), self.population_size // 5)
         for i in range(num_seeds):

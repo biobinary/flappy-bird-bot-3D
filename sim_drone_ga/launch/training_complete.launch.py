@@ -58,19 +58,19 @@ def generate_launch_description():
         
         DeclareLaunchArgument(
             'population_size',
-            default_value='30',
+            default_value='80',
             description='GA population size'
         ),
         
         DeclareLaunchArgument(
             'max_generations',
-            default_value='100',
+            default_value='10',
             description='Maximum number of generations'
         ),
         
         DeclareLaunchArgument(
             'episode_timeout',
-            default_value='15.0',
+            default_value='600.0',
             description='Episode timeout in seconds'
         ),
         
