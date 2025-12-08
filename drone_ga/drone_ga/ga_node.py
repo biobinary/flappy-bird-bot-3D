@@ -82,21 +82,41 @@ class GATrainingLoop(Node):
         self.get_logger().info('=== GA Training Loop Started (State Machine Fixed) ===')
 
     def initialize_population(self):
-        """Initialize random population with SAFETY CONFIG"""
+        """Initialize population for NEURAL NETWORK with SMART HEURISTICS"""
         self.population = []
+        GENOME_SIZE = 36 # 5x6 + 6x1
         
-        # --- SAFETY SEED (Individual #1) ---
-        # Weights mendekati 0.0 -> Drone cenderung HOVER / Inertia
-        self.population.append([0.0, 0.0, 0.0, 0.0, 0.0])
+        # --- STRATEGI 1: The "Hover-Bot" (Hand-Crafted Weights) ---
+        # Individual 1: Dirancang untuk Hover stabil & reaksi terhadap ketinggian
+        # Arsitektur: Bias(In5) -> H0 -> Output (+), Alt(In4) -> H1 -> Output (-)
         
-        # --- REST OF POPULATION ---
-        # Range diperkecil dari [-2.0, 2.0] ke [-0.5, 0.5]
-        # Agar tidak langsung 'menggila' ke langit-langit/lantai
+        hover_genome = [0.0] * GENOME_SIZE
+        
+        # Bias (Input 5) -> Hidden 0 (Index 24 (4*6 + 0))
+        hover_genome[24] = 0.8  # Strong activation to H0
+        # Hidden 0 -> Output (Index 30 (30 + 0))
+        hover_genome[30] = 0.8  # Positive thrust from H0
+        
+        # Altitude (Input 4) -> Hidden 1 (Index 19 (3*6 + 1))
+        hover_genome[19] = 1.0  # Strong activation from Altitude
+        # Hidden 1 -> Output (Index 31 (30 + 1))
+        hover_genome[31] = -0.5 # Negative thrust (Gravitasi buatan) if High
+        
+        self.population.append(hover_genome)
+        
+        # --- STRATEGI 2: Random Variations with Bias ---
+        # Sisanya random, tapi dengan tendensi bias positif agar tidak jatuh
         for _ in range(self.population_size - 1):
-            weights = [random.uniform(-0.5, 0.5) for _ in range(5)]
+            weights = []
+            for i in range(GENOME_SIZE):
+                val = random.uniform(-0.5, 0.5)
+                # Boost weights connected to Bias Input (Indices 24-29)
+                if 24 <= i <= 29:
+                     val += random.uniform(0.0, 0.5) # Tendensi positif
+                weights.append(val)
             self.population.append(weights)
             
-        self.get_logger().info(f'Initialized {self.population_size} individuals (1 Safety Seed + Reduced Variance)')
+        self.get_logger().info(f'Initialized {self.population_size} NN Agents (1 Hand-Crafted + Biased Random)')
 
     def fitness_callback(self, msg):
         if self.state == STATE_EPISODE_ACTIVE:

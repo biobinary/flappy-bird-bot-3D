@@ -137,7 +137,7 @@ class DroneFitness(Node):
             # Jika dalam 5 detik tidak maju minimal 0.5 meter -> Kill
             
             CHECK_INTERVAL = 5.0    # Cek progress setiap 5 detik
-            MIN_PROGRESS = 0.5      # Harus maju minimal 0.5 meter
+            MIN_PROGRESS = 0.1      # Harus maju minimal 0.1 meter (Relaxed for takeoff)
             
             now = self.get_clock().now()
             if self.last_check_time is not None:

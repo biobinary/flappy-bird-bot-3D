@@ -80,9 +80,9 @@ class DroneFlappyController(Node):
         )
         
         # State variables
-        self.lidar_up_distance = None
-        self.lidar_down_distance = None
-        self.lidar_forward_distance = None
+        self.lidar_up_distance = 10.0
+        self.lidar_down_distance = 10.0
+        self.lidar_forward_distance = 20.0
         self.current_height = 0.0
         self.current_velocity_z = 0.0
         
@@ -190,8 +190,9 @@ class DroneFlappyController(Node):
 
     def calculate_control_ga(self):
         """
-        Calculate vertical control using GA weights
-        Formula: vertical_cmd = w1*lidar_up + w2*lidar_down + w3*altitude + w4
+        Calculate vertical control using Simple Neural Network (MLP)
+        Architecture: 5 Inputs -> 6 Hidden (Tanh) -> 1 Output (Linear/Tanh)
+        Total Weights: (5 * 6) + (6 * 1) = 36 weights
         """
         
         # Safety checks
@@ -201,32 +202,57 @@ class DroneFlappyController(Node):
         if self.lidar_up_distance is None or self.lidar_down_distance is None:
             return 0.0
             
-        # Ensure we have enough weights (backward compatibility check)
-        if len(self.ga_weights) < 5:
-             # Fallback for old 4-weight logic
-             w1, w2, w3, w4 = self.ga_weights[:4]
-             w5 = 0.0
-        else:
-             w1, w2, w3, w4, w5 = self.ga_weights
+        # --- NEURAL NETWORK PARAMETERS ---
+        INPUT_SIZE = 5      # Up, Down, Fwd, Alt, Bias
+        HIDDEN_SIZE = 6     # Neurons in hidden layer
+        OUTPUT_SIZE = 1     # Vertical Vel
+        EXPECTED_WEIGHTS = (INPUT_SIZE * HIDDEN_SIZE) + (HIDDEN_SIZE * OUTPUT_SIZE) # 36
         
-        # Normalize inputs to reasonable ranges
-        lidar_up = np.clip(self.lidar_up_distance, 0.1, 10.0)
-        lidar_down = np.clip(self.lidar_down_distance, 0.1, 10.0)
-        lidar_forward = np.clip(self.lidar_forward_distance if hasattr(self, 'lidar_forward_distance') and self.lidar_forward_distance is not None else 10.0, 0.1, 20.0)
-        altitude = np.clip(self.current_height, 0.0, 12.0)
+        # Check genome size
+        if len(self.ga_weights) != EXPECTED_WEIGHTS:
+             # Fallback jika user belum restart GA node (masih kirim weight lama)
+             self.get_logger().warn(f'Genome size mismatch! Expected {EXPECTED_WEIGHTS}, got {len(self.ga_weights)}. Waiting for new generation...')
+             return 0.0
         
-        # Check for NaNs in inputs
-        if np.isnan(lidar_up) or np.isnan(lidar_down) or np.isnan(altitude):
-            self.get_logger().warn('NaN detected in inputs! Hovering.')
-            return 0.0
-
-        # Calculate command
-        # Formula: w1*up + w2*down + w3*alt + w4*bias + w5*forward
-        vertical_cmd = (w1 * lidar_up) + (w2 * lidar_down) + (w3 * altitude) + w4 + (w5 * lidar_forward)
+        # --- INPUT PREPARATION ---
+        # Normalize inputs to typically [-1, 1] or [0, 1] range for Tanh
         
-        # Final NaN check on output
+        in_up = np.clip(self.lidar_up_distance, 0.0, 10.0) / 10.0
+        in_down = np.clip(self.lidar_down_distance, 0.0, 10.0) / 10.0
+        
+        # Forward di-invert: 0.0=Jauh (Aman), 1.0=Dekat (Bahaya) agar responsif
+        dist_fwd = self.lidar_forward_distance if hasattr(self, 'lidar_forward_distance') and self.lidar_forward_distance is not None else 20.0
+        in_fwd = 1.0 - (np.clip(dist_fwd, 0.0, 20.0) / 20.0)
+        
+        in_alt = np.clip(self.current_height, 0.0, 12.0) / 12.0
+        in_bias = 1.0
+        
+        inputs = np.array([in_up, in_down, in_fwd, in_alt, in_bias])
+        
+        # --- FORWARD PASS ---
+        weights = np.array(self.ga_weights)
+        
+        # Slice weights
+        split_idx = INPUT_SIZE * HIDDEN_SIZE
+        w_hidden = weights[:split_idx].reshape(INPUT_SIZE, HIDDEN_SIZE) # 5x6
+        w_output = weights[split_idx:].reshape(HIDDEN_SIZE, OUTPUT_SIZE) # 6x1
+        
+        # Layer 1: Input -> Hidden
+        # Dot product: (1x5) dot (5x6) = (1x6)
+        hidden_raw = np.dot(inputs, w_hidden)
+        hidden_act = np.tanh(hidden_raw) # Activation Function (Non-linear!)
+        
+        # Layer 2: Hidden -> Output
+        # Dot product: (1x6) dot (6x1) = (1x1)
+        output_raw = np.dot(hidden_act, w_output)
+        
+        # Output scaling: Raw output usually small, scale to max velocity
+        output_norm = float(output_raw[0]) # Extract scalar
+        
+        vertical_cmd = output_norm * self.max_vertical_vel
+        
+        # Final NaN check
         if np.isnan(vertical_cmd) or np.isinf(vertical_cmd):
-             self.get_logger().warn('NaN/Inf detected in output! Hovering.')
              return 0.0
         
         # Clamp output
