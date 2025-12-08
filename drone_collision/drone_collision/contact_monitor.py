@@ -35,7 +35,7 @@ class ContactMonitor(Node):
             10
         )
 
-        self.get_logger().info('Contact Monitor Listening on: /world/flappy/physics/contacts')
+        self.get_logger().info('Contact Monitor Listening on: /drone/contacts')
 
     def reset_callback(self, msg):
         """Reset collision state when new episode starts"""
