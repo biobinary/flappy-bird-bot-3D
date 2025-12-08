@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-GA Training Loop Node - FIX (State Machine Implementation)
+GA Training Loop Node - FIX (Pose Reset Only)
 Mencegah deadlock dengan menggunakan arsitektur non-blocking state machine.
+Skip world reset untuk menjaga GPU rendering context (lidar sensors).
 """
 
 import rclpy
@@ -15,10 +16,9 @@ import random
 import numpy as np
 
 STATE_IDLE = 0
-STATE_RESETTING_WORLD = 1
+STATE_RESETTING_POSE = 1
 STATE_WAITING_SETTLE = 2
-STATE_RESETTING_POSE = 3
-STATE_EPISODE_ACTIVE = 4
+STATE_EPISODE_ACTIVE = 3
 
 class GATrainingLoop(Node):
     
@@ -50,7 +50,7 @@ class GATrainingLoop(Node):
         self.state_start_time = None
         self.collision_detected = False
         self.current_fitness = 0.0
-        self.reset_future = None
+        # self.reset_future = None  # Not used anymore (skip world reset)
         
         # Publishers
         self.weights_pub = self.create_publisher(
@@ -70,7 +70,7 @@ class GATrainingLoop(Node):
         self.world_control_client = self.create_client(
             ControlWorld, '/world/flappy/control')
             
-        self.get_logger().info('Waiting for world control service...')
+        self.get_logger().info('Waiting for simulation to be ready...')
 
         self.control_timer = self.create_timer(0.1, self.training_loop)
         
@@ -78,7 +78,7 @@ class GATrainingLoop(Node):
         self.initialize_population()
         self.fitness_scores = [0.0] * self.population_size
         
-        self.get_logger().info('=== GA Training Loop Started (State Machine Fixed) ===')
+        self.get_logger().info('=== GA Training Loop Started (Pose Reset Only - GPU Lidar Fix) ===')
 
     def initialize_population(self):
         """Initialize random population"""
@@ -100,7 +100,9 @@ class GATrainingLoop(Node):
     def training_loop(self):
         """Main State Machine Loop"""
         
-        # Cek Ketersediaan Service (Hanya sekali di awal)
+        # Cek Ketersediaan Service (Hanya untuk awal, tidak blocking)
+        # World control service tidak lagi digunakan untuk reset
+        # tapi kita tetap cek untuk memastikan simulasi sudah ready
         if not self.world_control_client.service_is_ready():
             return
 
@@ -114,31 +116,22 @@ class GATrainingLoop(Node):
                 self.evolve_generation()
                 return
 
-            self.trigger_world_reset()
-
-        elif self.state == STATE_RESETTING_WORLD:
-            if self.reset_future.done():
-                try:
-                    self.reset_future.result()
-                    self.state = STATE_WAITING_SETTLE
-                    self.state_start_time = self.get_clock().now()
-                except Exception as e:
-                    self.get_logger().error(f'World reset service call failed: {e}')
-                    self.state = STATE_IDLE
-
-        elif self.state == STATE_WAITING_SETTLE:
-            now = self.get_clock().now()
-            elapsed = (now - self.state_start_time).nanoseconds / 1e9
-            if elapsed >= self.settling_time:
-                self.reset_drone_pose() # Panggil subprocess
-                self.state = STATE_RESETTING_POSE
-                self.state_start_time = now # Reset timer untuk pose delay kecil
+            # PERBAIKAN: Langsung ke pose reset, skip world reset
+            # World reset merusak GPU rendering context untuk lidar
+            self.trigger_pose_reset()
 
         elif self.state == STATE_RESETTING_POSE:
             # Beri sedikit waktu setelah subprocess call (0.5 detik)
             now = self.get_clock().now()
             elapsed = (now - self.state_start_time).nanoseconds / 1e9
             if elapsed >= 0.5:
+                self.state = STATE_WAITING_SETTLE
+                self.state_start_time = now
+
+        elif self.state == STATE_WAITING_SETTLE:
+            now = self.get_clock().now()
+            elapsed = (now - self.state_start_time).nanoseconds / 1e9
+            if elapsed >= self.settling_time:
                 # Kirim sinyal reset ke node controller/fitness
                 reset_msg = Bool()
                 reset_msg.data = True
@@ -157,13 +150,12 @@ class GATrainingLoop(Node):
                 self.end_episode(reason)
                 self.state = STATE_IDLE # Kembali ke awal untuk individu berikutnya
 
-    def trigger_world_reset(self):
-        """Kirim request reset world secara async"""
-        self.get_logger().info(f'Gen {self.current_generation+1} Ind {self.current_individual+1}: Resetting World...')
-        req = ControlWorld.Request()
-        req.world_control.reset.all = True
-        self.reset_future = self.world_control_client.call_async(req)
-        self.state = STATE_RESETTING_WORLD
+    def trigger_pose_reset(self):
+        """Reset pose drone saja (skip world reset untuk menjaga GPU rendering context)"""
+        self.get_logger().info(f'Gen {self.current_generation+1} Ind {self.current_individual+1}: Resetting Pose...')
+        self.reset_drone_pose()
+        self.state = STATE_RESETTING_POSE
+        self.state_start_time = self.get_clock().now()
 
     def reset_drone_pose(self):
         """Reset pose via subprocess (ign service CLI)"""
