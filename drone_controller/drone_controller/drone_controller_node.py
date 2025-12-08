@@ -118,7 +118,7 @@ class DroneFlappyController(Node):
     def ga_weights_callback(self, msg):
         """Receive GA weights and enable control"""
         if len(msg.data) >= 4:
-            self.ga_weights = list(msg.data[:4])
+            self.ga_weights = list(msg.data)
             
             if not self.weights_received:
                 self.get_logger().info(f'GA Weights received: {[f"{w:.2f}" for w in self.ga_weights]}')
