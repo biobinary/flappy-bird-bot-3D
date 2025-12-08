@@ -293,7 +293,7 @@ class GATrainingLoop(Node):
             
             # Crossover
             if random.random() < 0.7:
-                pt = random.randint(1, 3)
+                pt = random.randint(1, len(p1) - 1)
                 c1 = p1[:pt] + p2[pt:]
                 c2 = p2[:pt] + p1[pt:]
             else:
@@ -302,7 +302,7 @@ class GATrainingLoop(Node):
             # Mutation (Adaptive)
             for c in [c1, c2]:
                 if random.random() < mutation_rate: 
-                    idx = random.randint(0, 3)
+                    idx = random.randint(0, len(c) - 1)
                     c[idx] += random.gauss(0, mutation_sigma)
                     c[idx] = np.clip(c[idx], -3.0, 3.0)
                 new_pop.append(c)
