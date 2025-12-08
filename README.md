@@ -201,26 +201,7 @@ flappy-bird-bot-3D/
 
 ## Arsitektur Sistem
 
-```
-┌─────────────────┐     weights      ┌──────────────────┐
-│   GA Node       │ ───────────────▶ │ Drone Controller │
-│ (training_loop) │                  │                  │
-└────────┬────────┘                  └────────┬─────────┘
-         │                                    │
-         │ reset_trigger                      │ cmd_vel
-         ▼                                    ▼
-┌─────────────────┐                  ┌──────────────────┐
-│ Fitness         │ ◀────────────── │ Gazebo           │
-│ Evaluator       │     odom        │ Simulation       │
-└─────────────────┘                  └────────┬─────────┘
-         ▲                                    │
-         │ fitness                            │ contacts
-         │                                    ▼
-         │                           ┌──────────────────┐
-         └─────────────────────────── │ Collision        │
-                                     │ Monitor          │
-                                     └──────────────────┘
-```
+![Arsitektur Sistem](docs/architecture.png)
 
 ## Troubleshooting
 
