@@ -2,6 +2,17 @@
 
 Simulasi quadrotor otonom yang belajar menavigasi rintangan ala Flappy Bird menggunakan Genetic Algorithm. Proyek ini dibangun di atas ROS 2 Humble dan Gazebo Fortress.
 
+## Group Members
+
+| Name | NRP |
+|------|-----|
+| Muhammad Ammar Ghifari | 5025231109 |
+| Glenn Muhammad Rooney | 5025231112 |
+| Muhamad Baihaqi Dawanis | 5025231177 |
+| Muhammad Risyad Himawan Putra | 5025231205 |
+| Naswan Nashir Ramadhan | 5025231246 |
+| Faizal Aldy Armiriawan | 5025231266 |
+
 ## Tentang Proyek
 
 Proyek ini mengeksplorasi pendekatan evolutionary computation untuk kontrol drone. Alih-alih merancang controller secara manual atau menggunakan reinforcement learning berbasis neural network, kami menggunakan Genetic Algorithm untuk mengoptimalkan parameter sederhana yang menentukan perilaku terbang drone.
