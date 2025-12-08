@@ -51,6 +51,13 @@ class DroneFlappyController(Node):
             10
         )
         
+        self.lidar_forward_sub = self.create_subscription(
+            LaserScan,
+            '/drone/lidar/forward',
+            self.lidar_forward_callback,
+            10
+        )
+        
         self.odom_sub = self.create_subscription(
             Odometry,
             '/drone/odom',
@@ -75,6 +82,7 @@ class DroneFlappyController(Node):
         # State variables
         self.lidar_up_distance = None
         self.lidar_down_distance = None
+        self.lidar_forward_distance = None
         self.current_height = 0.0
         self.current_velocity_z = 0.0
         
@@ -158,6 +166,23 @@ class DroneFlappyController(Node):
             self.get_logger().error(f'LiDAR down error: {e}')
             self.lidar_down_distance = 10.0
 
+    def lidar_forward_callback(self, msg):
+        """Process forward LiDAR with safety checks"""
+        try:
+            valid_ranges = [
+                r for r in msg.ranges 
+                if r < msg.range_max and r > msg.range_min and not np.isinf(r) and not np.isnan(r)
+            ]
+            
+            if len(valid_ranges) > 0:
+                self.lidar_forward_distance = min(valid_ranges)
+            else:
+                self.lidar_forward_distance = 20.0 # Max range default
+                
+        except Exception as e:
+            self.get_logger().error(f'LiDAR forward error: {e}')
+            self.lidar_forward_distance = 20.0
+
     def odom_callback(self, msg):
         """Process odometry"""
         self.current_height = msg.pose.pose.position.z
@@ -175,17 +200,34 @@ class DroneFlappyController(Node):
         
         if self.lidar_up_distance is None or self.lidar_down_distance is None:
             return 0.0
-        
-        # Extract weights
-        w1, w2, w3, w4 = self.ga_weights
+            
+        # Ensure we have enough weights (backward compatibility check)
+        if len(self.ga_weights) < 5:
+             # Fallback for old 4-weight logic
+             w1, w2, w3, w4 = self.ga_weights[:4]
+             w5 = 0.0
+        else:
+             w1, w2, w3, w4, w5 = self.ga_weights
         
         # Normalize inputs to reasonable ranges
         lidar_up = np.clip(self.lidar_up_distance, 0.1, 10.0)
         lidar_down = np.clip(self.lidar_down_distance, 0.1, 10.0)
+        lidar_forward = np.clip(self.lidar_forward_distance if hasattr(self, 'lidar_forward_distance') and self.lidar_forward_distance is not None else 10.0, 0.1, 20.0)
         altitude = np.clip(self.current_height, 0.0, 12.0)
         
+        # Check for NaNs in inputs
+        if np.isnan(lidar_up) or np.isnan(lidar_down) or np.isnan(altitude):
+            self.get_logger().warn('NaN detected in inputs! Hovering.')
+            return 0.0
+
         # Calculate command
-        vertical_cmd = w1 * lidar_up + w2 * lidar_down + w3 * altitude + w4
+        # Formula: w1*up + w2*down + w3*alt + w4*bias + w5*forward
+        vertical_cmd = (w1 * lidar_up) + (w2 * lidar_down) + (w3 * altitude) + w4 + (w5 * lidar_forward)
+        
+        # Final NaN check on output
+        if np.isnan(vertical_cmd) or np.isinf(vertical_cmd):
+             self.get_logger().warn('NaN/Inf detected in output! Hovering.')
+             return 0.0
         
         # Clamp output
         vertical_cmd = np.clip(

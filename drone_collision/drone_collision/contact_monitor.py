@@ -51,12 +51,15 @@ class ContactMonitor(Node):
         is_collision = False
         
         for contact in msg.contacts:
+            e1 = contact.entity1.name
+            e2 = contact.entity2.name
             is_collision = True
             break
         
         if is_collision:
             if not self.collision_active:
-                self.get_logger().warn('!!! COLLISION DETECTED !!!')
+                other_entity = e2 if self.drone_model_name in str(e1) else e1
+                self.get_logger().warn(f'!!! COLLISION DETECTED with {other_entity} !!!')
                 self.collision_active = True
             
             out_msg = Bool()

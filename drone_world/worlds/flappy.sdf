@@ -1,9 +1,9 @@
-<?xml version="1.0" ?>
+<?xml version="1.0"?>
 <sdf version="1.6">
   <world name="flappy">
     <physics name="1ms" type="ignored">
       <max_step_size>0.001</max_step_size>
-      <real_time_factor>1.0</real_time_factor>
+      <real_time_factor>0</real_time_factor>
     </physics>
 
     <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"></plugin>
@@ -141,7 +141,7 @@
     </model>
 
     <!-- Flappy Bird Obstacles (Pipes) - 10 pipes total -->
-    
+
     <!-- Pipe 01: Gap at height 4-7m -->
     <model name="pipe_01">
       <pose>20 0 0 0 0 0</pose>

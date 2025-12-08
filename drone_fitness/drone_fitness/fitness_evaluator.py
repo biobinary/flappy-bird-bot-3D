@@ -46,6 +46,13 @@ class DroneFitness(Node):
             10
         )
         
+        # Publisher untuk kill signal (simulasi collision jika stuck)
+        self.kill_pub = self.create_publisher(
+            Bool,
+            '/drone/collision',
+            10
+        )
+
         # State variables
         self.initial_x = None
         self.max_x = 0.0
@@ -53,10 +60,14 @@ class DroneFitness(Node):
         self.episode_active = False
         self.collision_handled = False
         
-        # Timer untuk publish continuous fitness (monitoring only)
+        # Stagnation detection
+        self.last_check_x = 0.0
+        self.last_check_time = None
+        
+        # Timer untuk monitoring dan stagnation check (5Hz)
         self.timer = self.create_timer(0.2, self.timer_callback)
         
-        self.get_logger().info('Drone Fitness Evaluator Node started (Fixed)')
+        self.get_logger().info('Drone Fitness Evaluator Node started (Fixed + Stagnation Killer)')
 
     def reset_callback(self, msg):
         """Handle reset signal from training loop"""
@@ -67,6 +78,10 @@ class DroneFitness(Node):
             self.current_x = 0.0
             self.episode_active = True
             self.collision_handled = False
+            
+            # Reset stagnation watcher
+            self.last_check_x = 0.0
+            self.last_check_time = self.get_clock().now()
 
     def odom_callback(self, msg):
         """Callback untuk odometry - update posisi X dan max X."""
@@ -116,6 +131,33 @@ class DroneFitness(Node):
         """
         if self.episode_active and self.initial_x is not None:
             current_distance = self.max_x - self.initial_x
+            
+            # --- STAGNATION KILLER ---
+            # Cek setiap 1 detik (agar tidak terlalu berat)
+            # Jika dalam 5 detik tidak maju minimal 0.5 meter -> Kill
+            
+            CHECK_INTERVAL = 5.0    # Cek progress setiap 5 detik
+            MIN_PROGRESS = 0.5      # Harus maju minimal 0.5 meter
+            
+            now = self.get_clock().now()
+            if self.last_check_time is not None:
+                elapsed_check = (now - self.last_check_time).nanoseconds / 1e9
+                
+                if elapsed_check > CHECK_INTERVAL:
+                    progress = self.max_x - self.last_check_x
+                    
+                    if progress < MIN_PROGRESS:
+                        self.get_logger().warn(f'🐌 STAGNATION DETECTED! Progress {progress:.2f}m in {elapsed_check:.1f}s. KILLING.')
+                        
+                        # Fake collision to kill episode
+                        kill_msg = Bool()
+                        kill_msg.data = True
+                        self.kill_pub.publish(kill_msg)
+                        self.episode_active = False # Stop counting
+                        
+                    # Update checkpoint
+                    self.last_check_x = self.max_x
+                    self.last_check_time = now
             
             # Publish untuk monitoring
             fitness_msg = Float64()

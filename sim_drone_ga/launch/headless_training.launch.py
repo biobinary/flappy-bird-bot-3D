@@ -14,8 +14,8 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 def generate_launch_description():
     """
-    Complete GA Training Launch File
-    Launches entire simulation stack + GA training loop
+    Complete GA Training Launch File (HEADLESS / TURBO MODE)
+    Launches entire simulation stack + GA training loop WITHOUT GUI
     """
     
     # Get package paths
@@ -86,13 +86,14 @@ def generate_launch_description():
             description='Maximum vertical velocity (m/s)'
         ),
         
-        # ==================== GAZEBO IGNITION ====================
+        # ==================== GAZEBO IGNITION (HEADLESS) ====================
         ExecuteProcess(
             cmd=[
                 'ign', 'gazebo', 
-                LaunchConfiguration('world'),
-                '-r',  # Start paused
-                '-v', '3'  # Verbosity level
+                '-s', # Server only (Headless)
+                '-r', # Start running
+                '-v', '3', # Verbosity level
+                LaunchConfiguration('world')
             ],
             output='screen',
             shell=False

@@ -1,12 +1,12 @@
-<?xml version="1.0" ?>
+<?xml version="1.0"?>
 <sdf version="1.9">
   <model name="quadrotor">
     <pose>0 0 0.5 0 0 0</pose>
-    
+
     <!-- Base Link (Drone Body) -->
     <link name="base_link">
       <pose>0 0 0 0 0 0</pose>
-      
+
       <!-- Inertial Properties -->
       <inertial>
         <mass>1.0</mass>
@@ -19,7 +19,7 @@
           <iyz>0</iyz>
         </inertia>
       </inertial>
-      
+
       <!-- Collision Geometry -->
       <collision name="base_collision">
         <geometry>
@@ -37,7 +37,7 @@
         </contact>
         <visualize>true</visualize>
       </sensor>
-      
+
       <!-- Visual Geometry - Body -->
       <visual name="base_visual">
         <geometry>
@@ -51,7 +51,7 @@
           <specular>0.1 0.1 0.1 1</specular>
         </material>
       </visual>
-      
+
       <!-- Arms (retained for visual detail) -->
       <visual name="arm_front_left">
         <pose>0.1 0.1 0 0 0 0.785398</pose>
@@ -65,7 +65,7 @@
           <diffuse>0.2 0.2 0.2 1</diffuse>
         </material>
       </visual>
-      
+
       <visual name="arm_front_right">
         <pose>-0.1 0.1 0 0 0 -0.785398</pose>
         <geometry>
@@ -78,7 +78,7 @@
           <diffuse>0.2 0.2 0.2 1</diffuse>
         </material>
       </visual>
-      
+
       <visual name="arm_back_left">
         <pose>0.1 -0.1 0 0 0 -0.785398</pose>
         <geometry>
@@ -91,7 +91,7 @@
           <diffuse>0.2 0.2 0.2 1</diffuse>
         </material>
       </visual>
-      
+
       <visual name="arm_back_right">
         <pose>-0.1 -0.1 0 0 0 0.785398</pose>
         <geometry>
@@ -104,7 +104,7 @@
           <diffuse>0.2 0.2 0.2 1</diffuse>
         </material>
       </visual>
-      
+
       <!-- Motor Mounts -->
       <visual name="motor_fl">
         <pose>0.15 0.15 0.02 0 0 0</pose>
@@ -119,7 +119,7 @@
           <diffuse>0.4 0.4 0.4 1</diffuse>
         </material>
       </visual>
-      
+
       <visual name="motor_fr">
         <pose>-0.15 0.15 0.02 0 0 0</pose>
         <geometry>
@@ -133,7 +133,7 @@
           <diffuse>0.4 0.4 0.4 1</diffuse>
         </material>
       </visual>
-      
+
       <visual name="motor_bl">
         <pose>0.15 -0.15 0.02 0 0 0</pose>
         <geometry>
@@ -147,7 +147,7 @@
           <diffuse>0.4 0.4 0.4 1</diffuse>
         </material>
       </visual>
-      
+
       <visual name="motor_br">
         <pose>-0.15 -0.15 0.02 0 0 0</pose>
         <geometry>
@@ -161,7 +161,7 @@
           <diffuse>0.4 0.4 0.4 1</diffuse>
         </material>
       </visual>
-      
+
       <!-- Propellers -->
       <visual name="prop_fl">
         <pose>0.15 0.15 0.055 0 0 0</pose>
@@ -177,7 +177,7 @@
           <specular>0.5 0.5 0.5 0.7</specular>
         </material>
       </visual>
-      
+
       <visual name="prop_fr">
         <pose>-0.15 0.15 0.055 0 0 0</pose>
         <geometry>
@@ -192,7 +192,7 @@
           <specular>0.3 0.3 0.3 0.7</specular>
         </material>
       </visual>
-      
+
       <visual name="prop_bl">
         <pose>0.15 -0.15 0.055 0 0 0</pose>
         <geometry>
@@ -207,7 +207,7 @@
           <specular>0.3 0.3 0.3 0.7</specular>
         </material>
       </visual>
-      
+
       <visual name="prop_br">
         <pose>-0.15 -0.15 0.055 0 0 0</pose>
         <geometry>
@@ -222,7 +222,7 @@
           <specular>0.5 0.5 0.5 0.7</specular>
         </material>
       </visual>
-      
+
       <!-- Front Marker -->
       <visual name="front_marker">
         <pose>0.16 0 0 0 1.5708 0</pose>
@@ -237,7 +237,7 @@
           <diffuse>1.0 0.0 0.0 1</diffuse>
         </material>
       </visual>
-      
+
       <!-- IMU Sensor -->
       <sensor name="imu_sensor" type="imu">
         <always_on>1</always_on>
@@ -286,13 +286,15 @@
           </linear_acceleration>
         </imu>
       </sensor>
-      
-      <sensor name="lidar_up" type="gpu_lidar"> <pose>0 0 0.06 0 0 0</pose>
+
+      <sensor name="lidar_up" type="gpu_lidar">
+        <pose>0 0 0.06 0 0 0</pose>
         <always_on>1</always_on>
         <update_rate>10</update_rate>
         <visualize>true</visualize>
         <topic>/drone/lidar/up</topic>
-        <lidar> <scan>
+        <lidar>
+          <scan>
             <horizontal>
               <samples>64</samples>
               <resolution>1</resolution>
@@ -318,13 +320,15 @@
           </noise>
         </lidar>
       </sensor>
-      
-      <sensor name="lidar_down" type="gpu_lidar"> <pose>0 0 -0.06 0 0 0</pose>
+
+      <sensor name="lidar_down" type="gpu_lidar">
+        <pose>0 0 -0.06 0 0 0</pose>
         <always_on>1</always_on>
         <update_rate>10</update_rate>
         <visualize>true</visualize>
         <topic>/drone/lidar/down</topic>
-        <lidar> <scan>
+        <lidar>
+          <scan>
             <horizontal>
               <samples>64</samples>
               <resolution>1</resolution>
@@ -351,19 +355,49 @@
         </lidar>
       </sensor>
 
+      <!-- Forward Lidar -->
+      <sensor name="lidar_forward" type="gpu_lidar">
+        <pose>0.15 0 0 0 0 0</pose>
+        <always_on>1</always_on>
+        <update_rate>10</update_rate>
+        <visualize>true</visualize>
+        <topic>/drone/lidar/forward</topic>
+        <lidar>
+          <scan>
+            <horizontal>
+              <samples>32</samples>
+              <resolution>1</resolution>
+              <min_angle>-0.2</min_angle>
+              <max_angle>0.2</max_angle>
+            </horizontal>
+            <vertical>
+              <samples>1</samples>
+              <resolution>1</resolution>
+              <min_angle>0</min_angle>
+              <max_angle>0</max_angle>
+            </vertical>
+          </scan>
+          <range>
+            <min>0.1</min>
+            <max>20.0</max>
+            <resolution>0.01</resolution>
+          </range>
+        </lidar>
+      </sensor>
+
     </link>
-    
+
     <!-- Plugins -->
     <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu">
     </plugin>
-    
+
     <plugin filename="gz-sim-velocity-control-system" name="gz::sim::systems::VelocityControl">
       <initial_linear>0 0 0</initial_linear>
       <initial_angular>0 0 0</initial_angular>
     </plugin>
 
-    <plugin filename="ignition-gazebo-odometry-publisher-system" 
-            name="ignition::gazebo::systems::OdometryPublisher">
+    <plugin filename="ignition-gazebo-odometry-publisher-system"
+      name="ignition::gazebo::systems::OdometryPublisher">
       <odom_frame>odom</odom_frame>
       <robot_base_frame>base_link</robot_base_frame>
       <odom_publish_frequency>50</odom_publish_frequency>

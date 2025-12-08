@@ -29,7 +29,7 @@ class GATrainingLoop(Node):
         self.declare_parameter('episode_timeout', 30.0)
         self.declare_parameter('population_size', 20)
         self.declare_parameter('max_generations', 100)
-        self.declare_parameter('settling_time', 1.0)
+        self.declare_parameter('settling_time', 0.1) # Reduced from 1.0 for speed
         
         self.episode_timeout = self.get_parameter('episode_timeout').value
         self.population_size = self.get_parameter('population_size').value
@@ -43,6 +43,7 @@ class GATrainingLoop(Node):
         self.fitness_scores = []
         self.best_weights = None
         self.best_fitness = -float('inf')
+        self.stagnation_counter = 0 # Counter untuk adaptive mutation
         
         # Simulation State Variables
         self.state = STATE_IDLE
@@ -81,12 +82,21 @@ class GATrainingLoop(Node):
         self.get_logger().info('=== GA Training Loop Started (State Machine Fixed) ===')
 
     def initialize_population(self):
-        """Initialize random population"""
+        """Initialize random population with SAFETY CONFIG"""
         self.population = []
-        for _ in range(self.population_size):
-            weights = [random.uniform(-2.0, 2.0) for _ in range(4)]
+        
+        # --- SAFETY SEED (Individual #1) ---
+        # Weights mendekati 0.0 -> Drone cenderung HOVER / Inertia
+        self.population.append([0.0, 0.0, 0.0, 0.0, 0.0])
+        
+        # --- REST OF POPULATION ---
+        # Range diperkecil dari [-2.0, 2.0] ke [-0.5, 0.5]
+        # Agar tidak langsung 'menggila' ke langit-langit/lantai
+        for _ in range(self.population_size - 1):
+            weights = [random.uniform(-0.5, 0.5) for _ in range(5)]
             self.population.append(weights)
-        self.get_logger().info(f'Initialized {self.population_size} individuals')
+            
+        self.get_logger().info(f'Initialized {self.population_size} individuals (1 Safety Seed + Reduced Variance)')
 
     def fitness_callback(self, msg):
         if self.state == STATE_EPISODE_ACTIVE:
@@ -135,10 +145,10 @@ class GATrainingLoop(Node):
                 self.state_start_time = now # Reset timer untuk pose delay kecil
 
         elif self.state == STATE_RESETTING_POSE:
-            # Beri sedikit waktu setelah subprocess call (0.5 detik)
+            # Beri sedikit waktu setelah subprocess call (0.1 detik cukup)
             now = self.get_clock().now()
             elapsed = (now - self.state_start_time).nanoseconds / 1e9
-            if elapsed >= 0.5:
+            if elapsed >= 0.1:
                 # Kirim sinyal reset ke node controller/fitness
                 reset_msg = Bool()
                 reset_msg.data = True
@@ -210,10 +220,36 @@ class GATrainingLoop(Node):
         self.current_individual += 1
 
     def evolve_generation(self):
-        """Algoritma Genetika: Seleksi, Crossover, Mutasi"""
+        """Algoritma Genetika: Seleksi, Crossover, Mutasi (Adaptive)"""
+        
+        avg_fitness = np.mean(self.fitness_scores)
+        
+        # --- LOGIC ADAPTIVE MUTATION ---
+        # Jika best fitness tidak membaik, naikkan stagnation counter
+        max_fitness = max(self.fitness_scores)
+        if max_fitness > self.best_fitness:
+            self.stagnation_counter = 0 # Reset jika ada rekor baru
+        else:
+            self.stagnation_counter += 1
+            
+        # Hitung mutation rate dinamis
+        base_mutation_rate = 0.2
+        base_mutation_sigma = 0.5
+        
+        # Jika stagnan > 5 generasi, boost mutasi
+        if self.stagnation_counter > 5:
+            mutation_rate = 0.5     # Lebih sering mutasi
+            mutation_sigma = 1.0    # Perubahan lebih ekstrem
+            status = f"STAGNATED ({self.stagnation_counter} gen)! BOOSTING MUTATION 🚀"
+        else:
+            mutation_rate = base_mutation_rate
+            mutation_sigma = base_mutation_sigma
+            status = "Standard Mutation"
+
         self.get_logger().info('='*40)
         self.get_logger().info(f'GENERATION {self.current_generation + 1} COMPLETE')
-        self.get_logger().info(f'Avg Fitness: {np.mean(self.fitness_scores):.2f}')
+        self.get_logger().info(f'Avg: {avg_fitness:.2f} | Max: {max_fitness:.2f} | Best Ever: {self.best_fitness:.2f}')
+        self.get_logger().info(f'Mode: {status} (Rate: {mutation_rate}, Sigma: {mutation_sigma})')
         self.get_logger().info('='*40)
         
         new_pop = []
@@ -227,7 +263,6 @@ class GATrainingLoop(Node):
         def tournament():
             k = 3
             candidates = random.sample(list(enumerate(self.fitness_scores)), k)
-            # candidates is list of (index, score)
             best = max(candidates, key=lambda x: x[1])
             return self.population[best[0]]
 
@@ -244,11 +279,11 @@ class GATrainingLoop(Node):
             else:
                 c1, c2 = p1.copy(), p2.copy()
             
-            # Mutation
+            # Mutation (Adaptive)
             for c in [c1, c2]:
-                if random.random() < 0.2: # Mutation probability
+                if random.random() < mutation_rate: 
                     idx = random.randint(0, 3)
-                    c[idx] += random.gauss(0, 0.5)
+                    c[idx] += random.gauss(0, mutation_sigma)
                     c[idx] = np.clip(c[idx], -3.0, 3.0)
                 new_pop.append(c)
                 if len(new_pop) >= self.population_size:
