@@ -65,6 +65,7 @@ def generate_launch_description():
                 '/drone/imu@sensor_msgs/msg/Imu[gz.msgs.IMU',
                 '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
                 '/world/flappy/physics/contacts@ros_gz_interfaces/msg/Contacts[gz.msgs.Contacts',
+                '/world/flappy/model/quadrotor/link/base_link/sensor/collision_sensor/contact@ros_gz_interfaces/msg/Contacts[gz.msgs.Contacts',
                 '/model/quadrotor/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
                 '/drone/lidar/up@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
                 '/drone/lidar/down@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
@@ -73,7 +74,8 @@ def generate_launch_description():
             ],
             output='screen',
             remappings=[
-                ('/model/quadrotor/odometry', '/drone/odom')
+                ('/model/quadrotor/odometry', '/drone/odom'),
+                ('/world/flappy/model/quadrotor/link/base_link/sensor/collision_sensor/contact', '/drone/contacts')
             ],
             parameters=[{
                 'use_sim_time': LaunchConfiguration('use_sim_time'),
