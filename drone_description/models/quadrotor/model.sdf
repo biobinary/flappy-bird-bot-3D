@@ -371,10 +371,10 @@
               <max_angle>0.2</max_angle>
             </horizontal>
             <vertical>
-              <samples>1</samples>
+              <samples>8</samples>
               <resolution>1</resolution>
-              <min_angle>0</min_angle>
-              <max_angle>0</max_angle>
+              <min_angle>-0.2</min_angle>
+              <max_angle>0.2</max_angle>
             </vertical>
           </scan>
           <range>

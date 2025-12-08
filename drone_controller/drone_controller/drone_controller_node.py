@@ -251,7 +251,7 @@ class DroneFlappyController(Node):
         
         vertical_cmd = output_norm * self.max_vertical_vel
         
-        # Final NaN check
+        # Final NaN check on output
         if np.isnan(vertical_cmd) or np.isinf(vertical_cmd):
              return 0.0
         
@@ -261,7 +261,7 @@ class DroneFlappyController(Node):
             -self.max_vertical_vel,
             self.max_vertical_vel
         )
-        
+
         return vertical_cmd
 
     def control_loop(self):
