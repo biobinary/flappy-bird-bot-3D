@@ -2,9 +2,9 @@
 
 Simulasi quadrotor otonom yang belajar menavigasi rintangan ala Flappy Bird menggunakan Genetic Algorithm. Proyek ini dibangun di atas ROS 2 Humble dan Gazebo Fortress.
 
-## Group Members
+## Anggota Tim
 
-| Name | NRP |
+| Nama | NRP |
 |------|-----|
 | Muhammad Ammar Ghifari | 5025231109 |
 | Glenn Muhammad Rooney | 5025231112 |
