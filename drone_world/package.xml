@@ -5,7 +5,7 @@
   <version>1.0.0</version>
   <description>Package untuk world Ignition Gazebo dengan obstacles untuk simulasi drone</description>
   <maintainer email="user@example.com">User</maintainer>
-  <license>Apache-2.0</license>
+  <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
@@ -19,4 +19,3 @@
     <build_type>ament_cmake</build_type>
   </export>
 </package>
-

@@ -5,12 +5,10 @@
   <version>1.0.0</version>
   <description>Package untuk Genetic Algorithm untuk optimasi kontrol drone</description>
   <maintainer email="user@example.com">User</maintainer>
-  <license>Apache-2.0</license>
-
-  <buildtool_depend>ament_python</buildtool_depend>
+  <license>MIT</license>
 
   <depend>rclpy</depend>
-  
+
   <depend>std_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>sensor_msgs</depend>
@@ -29,4 +27,3 @@
     <build_type>ament_python</build_type>
   </export>
 </package>
-
